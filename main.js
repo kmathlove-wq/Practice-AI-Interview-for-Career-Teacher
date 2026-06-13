@@ -225,7 +225,7 @@ function updateTimer(remaining, total) {
 
 async function startRecording() {
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    transcriptText.textContent = "이 브라우저는 영상/음성 녹음을 지원하지 않습니다. Chrome 또는 Edge 최신 버전에서 다시 시도해 주세요.";
+    transcriptText.textContent = getMediaSupportMessage("영상/음성 녹음");
     return false;
   }
 
@@ -435,8 +435,9 @@ function updateRetryAvailability() {
 
 async function checkEnvironment() {
   if (!navigator.mediaDevices?.getUserMedia) {
-    updateEnvironmentItem("camera", "이 브라우저에서는 카메라 확인을 지원하지 않습니다.", false);
-    updateEnvironmentItem("microphone", "이 브라우저에서는 마이크 확인을 지원하지 않습니다.", false);
+    const message = getMediaSupportMessage("카메라와 마이크 확인");
+    updateEnvironmentItem("camera", message, false);
+    updateEnvironmentItem("microphone", message, false);
     return;
   }
 
@@ -474,6 +475,14 @@ function updateEnvironmentItem(checkName, message, passed) {
 
   item.textContent = message;
   item.classList.toggle("passed", passed);
+}
+
+function getMediaSupportMessage(featureName) {
+  if (!window.isSecureContext) {
+    return `${featureName}은 HTTPS 주소 또는 localhost에서만 사용할 수 있습니다. GitHub Pages의 https:// 주소로 접속해 주세요.`;
+  }
+
+  return `이 브라우저에서는 ${featureName}을 지원하지 않습니다. Chrome 또는 Edge 최신 버전에서 다시 시도해 주세요.`;
 }
 
 function renderAnswerGuide(question) {
