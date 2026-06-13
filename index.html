@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>진로전담교사 면접 연습</title>
+  <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
+  <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section class="practice-panel" aria-labelledby="app-title">
+      <div class="top-bar">
+        <div class="brand">
+          <img src="assets/interview-compass-mark.png" alt="" class="brand-logo">
+          <div>
+            <p class="eyebrow">Career Teacher Interview</p>
+            <h1 id="app-title">진로전담교사 면접 연습</h1>
+          </div>
+        </div>
+        <div class="status-pill" id="phaseLabel">대기 중</div>
+      </div>
+
+      <section class="question-box" aria-live="polite">
+        <p class="section-label">면접 질문</p>
+        <h2 id="questionText">시작 버튼을 누르면 예상 질문이 무작위로 선택됩니다.</h2>
+      </section>
+
+      <section class="timer-area" aria-live="polite">
+        <div class="timer-card">
+          <p id="timerTitle">준비 완료</p>
+          <strong id="timerText">00:00</strong>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="연습 조작">
+        <button id="startBtn" class="primary-btn" type="button">시작</button>
+        <button id="skipBtn" class="secondary-btn" type="button" disabled>질문 건너뛰기</button>
+        <button id="retryBtn" class="secondary-btn" type="button" disabled>다시 시작</button>
+        <button id="deviceCheckBtn" class="secondary-btn" type="button">응시 환경 체크</button>
+      </section>
+
+      <section class="interview-tools" aria-label="영상면접 연습 도구">
+        <article class="tool-panel video-panel">
+          <div class="result-header">
+            <div>
+              <p class="section-label">영상면접</p>
+              <h3>카메라 미리보기</h3>
+            </div>
+            <span id="cameraState">카메라 대기</span>
+          </div>
+          <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
+          <ul class="check-list" id="environmentList">
+            <li data-check="camera">카메라 권한 확인 전</li>
+            <li data-check="microphone">마이크 권한 확인 전</li>
+            <li data-check="place">밝은 장소와 안정된 자세를 준비하세요.</li>
+          </ul>
+        </article>
+
+        <article class="tool-panel guide-panel">
+          <div class="result-header">
+            <div>
+              <p class="section-label">면접 가이드</p>
+              <h3>질문별 답변 힌트</h3>
+            </div>
+            <span>추천/지양/유사</span>
+          </div>
+          <div id="answerGuide" class="guide-content">
+            질문이 선택되면 추천 답변 방향, 지양할 답변, 유사 질문이 표시됩니다.
+          </div>
+        </article>
+
+        <article class="tool-panel order-panel">
+          <div class="result-header">
+            <div>
+              <p class="section-label">질문 리스트</p>
+              <h3>다음 질문 예약</h3>
+            </div>
+            <span id="reservedQuestionState">무작위</span>
+          </div>
+          <label class="question-picker-label" for="questionPicker">연습할 질문 선택</label>
+          <select id="questionPicker" class="question-picker"></select>
+          <button id="reserveQuestionBtn" class="secondary-btn reserve-btn" type="button">선택 질문 예약</button>
+        </article>
+      </section>
+
+      <section class="result-box answer-result" aria-labelledby="result-title">
+        <div class="result-header">
+          <div>
+            <p class="section-label">답변 출력</p>
+            <h3 id="result-title">녹음 결과</h3>
+          </div>
+          <span id="recordingState">녹음 전</span>
+        </div>
+        <video id="videoPlayer" class="recorded-video" controls hidden></video>
+        <audio id="audioPlayer" controls hidden></audio>
+        <p id="transcriptText" class="placeholder">
+          답변 시간이 끝나면 녹음 파일과 음성 인식 텍스트가 이곳에 표시됩니다.
+        </p>
+        <div id="feedbackBox" class="feedback-box" hidden></div>
+      </section>
+
+      <section class="result-box history-panel" aria-labelledby="history-title">
+        <div class="result-header">
+          <div>
+            <p class="section-label">연습기록</p>
+            <h3 id="history-title">최근 답변 기록</h3>
+          </div>
+          <span id="historyCount">0개</span>
+        </div>
+        <div id="practiceHistory" class="history-list">
+          아직 저장된 연습 기록이 없습니다.
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+</body>
+</html>
