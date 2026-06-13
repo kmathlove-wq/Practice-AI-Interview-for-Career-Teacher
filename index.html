@@ -80,11 +80,13 @@
               <p class="section-label">질문 리스트</p>
               <h3>다음 질문 예약</h3>
             </div>
-            <span id="reservedQuestionState">무작위</span>
+            <div class="reservation-actions">
+              <span id="reservedQuestionState">무작위</span>
+              <button id="randomQuestionBtn" class="mini-btn" type="button">무작위</button>
+            </div>
           </div>
           <label class="question-picker-label" for="questionPicker">연습할 질문 선택</label>
           <select id="questionPicker" class="question-picker"></select>
-          <button id="reserveQuestionBtn" class="secondary-btn reserve-btn" type="button">선택 질문 예약</button>
         </article>
       </section>
 
@@ -94,7 +96,11 @@
             <p class="section-label">답변 출력</p>
             <h3 id="result-title">녹음 결과</h3>
           </div>
-          <span id="recordingState">녹음 전</span>
+          <div class="result-actions">
+            <button id="openGuideBtn" class="mini-btn" type="button">가이드 보기</button>
+            <button id="openHistoryBtn" class="mini-btn" type="button">기록 보기</button>
+            <span id="recordingState">녹음 전</span>
+          </div>
         </div>
         <video id="videoPlayer" class="recorded-video" controls hidden></video>
         <audio id="audioPlayer" controls hidden></audio>
@@ -118,6 +124,17 @@
       </section>
     </section>
   </main>
+
+  <div id="infoModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h2 id="modalTitle">더보기</h2>
+        <button id="closeModalBtn" class="mini-btn" type="button">닫기</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </section>
+  </div>
 
   <script src="main.js"></script>
 </body>

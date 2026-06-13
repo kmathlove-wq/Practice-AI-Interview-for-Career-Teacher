@@ -19,6 +19,7 @@ const PREP_SECONDS = 10;
 const ANSWER_SECONDS = 90;
 
 const questionText = document.querySelector("#questionText");
+const questionBox = document.querySelector(".question-box");
 const phaseLabel = document.querySelector("#phaseLabel");
 const timerTitle = document.querySelector("#timerTitle");
 const timerText = document.querySelector("#timerText");
@@ -39,8 +40,14 @@ const feedbackBox = document.querySelector("#feedbackBox");
 const practiceHistory = document.querySelector("#practiceHistory");
 const historyCount = document.querySelector("#historyCount");
 const questionPicker = document.querySelector("#questionPicker");
-const reserveQuestionBtn = document.querySelector("#reserveQuestionBtn");
+const randomQuestionBtn = document.querySelector("#randomQuestionBtn");
 const reservedQuestionState = document.querySelector("#reservedQuestionState");
+const openGuideBtn = document.querySelector("#openGuideBtn");
+const openHistoryBtn = document.querySelector("#openHistoryBtn");
+const infoModal = document.querySelector("#infoModal");
+const modalTitle = document.querySelector("#modalTitle");
+const modalBody = document.querySelector("#modalBody");
+const closeModalBtn = document.querySelector("#closeModalBtn");
 
 let questions = [...FALLBACK_QUESTIONS];
 let currentQuestion = "";
@@ -69,7 +76,24 @@ function init() {
   skipBtn.addEventListener("click", skipQuestion);
   retryBtn.addEventListener("click", retryCurrentQuestion);
   deviceCheckBtn.addEventListener("click", checkEnvironment);
-  reserveQuestionBtn.addEventListener("click", reserveSelectedQuestion);
+  questionPicker.addEventListener("change", reserveSelectedQuestion);
+  questionPicker.addEventListener("click", reserveSelectedQuestion);
+  questionPicker.addEventListener("keyup", reserveSelectedQuestion);
+  randomQuestionBtn.addEventListener("click", clearReservedQuestion);
+  openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
+  openHistoryBtn.addEventListener("click", () => openInfoModal("최근 답변 기록", practiceHistory.innerHTML));
+  closeModalBtn.addEventListener("click", closeInfoModal);
+  modalBody.addEventListener("click", handleModalClick);
+  infoModal.addEventListener("click", (event) => {
+    if (event.target.hasAttribute("data-close-modal")) {
+      closeInfoModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !infoModal.hidden) {
+      closeInfoModal();
+    }
+  });
   window.addEventListener("beforeunload", stopAllMedia);
 }
 
@@ -113,12 +137,12 @@ function skipQuestion() {
 }
 
 async function retryCurrentQuestion() {
-  if (phase !== "answer" || currentTimerRemaining > 20 || !currentQuestion) return;
+  if (phase !== "answer" || currentTimerRemaining <= ANSWER_SECONDS - 20 || !currentQuestion) return;
 
   stopCurrentTimer();
   stopActiveRecording();
   resetResult();
-  questionText.textContent = currentQuestion;
+  setQuestionText(currentQuestion);
   renderAnswerGuide(currentQuestion);
   await runCurrentQuestion();
 }
@@ -147,11 +171,11 @@ async function runCurrentQuestion() {
 }
 
 function pickRandomQuestion(previousQuestion = "") {
-  if (reservedQuestion && reservedQuestion !== previousQuestion) {
+  if (reservedQuestion) {
     currentQuestion = reservedQuestion;
     reservedQuestion = "";
     reservedQuestionState.textContent = "무작위";
-    questionText.textContent = currentQuestion;
+    setQuestionText(currentQuestion);
     renderAnswerGuide(currentQuestion);
     return;
   }
@@ -159,8 +183,14 @@ function pickRandomQuestion(previousQuestion = "") {
   const candidates = questions.filter((question) => question !== previousQuestion);
   const pool = candidates.length > 0 ? candidates : questions;
   currentQuestion = pool[Math.floor(Math.random() * pool.length)];
-  questionText.textContent = currentQuestion;
+  setQuestionText(currentQuestion);
   renderAnswerGuide(currentQuestion);
+}
+
+function setQuestionText(question) {
+  questionText.textContent = question;
+  questionBox.classList.toggle("long-question", question.length > 95);
+  questionBox.classList.toggle("very-long-question", question.length > 150);
 }
 
 function runTimer(totalSeconds, label) {
@@ -400,7 +430,7 @@ function setPhase(nextPhase) {
 }
 
 function updateRetryAvailability() {
-  retryBtn.disabled = !(phase === "answer" && currentTimerRemaining <= 20 && currentTimerRemaining > 0);
+  retryBtn.disabled = !(phase === "answer" && currentTimerRemaining > ANSWER_SECONDS - 20);
 }
 
 async function checkEnvironment() {
@@ -560,11 +590,14 @@ function renderPracticeHistory() {
   }
 
   practiceHistory.innerHTML = records
-    .map((record) => `
+    .map((record, index) => `
       <article class="history-item">
-        <strong>${escapeHtml(record.mode)} · ${escapeHtml(record.date)}</strong>
-        <p>${escapeHtml(record.question)}</p>
-        <p>${record.transcript ? escapeHtml(record.transcript.slice(0, 90)) : "인식된 답변 텍스트 없음"}</p>
+        <div class="history-item-header">
+          <strong>${escapeHtml(record.mode)} · ${escapeHtml(record.date)}</strong>
+          <button class="delete-record-btn" type="button" data-delete-record="${index}">삭제</button>
+        </div>
+        <p><b>질문:</b> ${escapeHtml(record.question)}</p>
+        <p><b>답변:</b> ${record.transcript ? escapeHtml(record.transcript) : "인식된 답변 텍스트 없음"}</p>
       </article>
     `)
     .join("");
@@ -591,6 +624,38 @@ function reserveSelectedQuestion() {
 
   reservedQuestion = selectedQuestion;
   reservedQuestionState.textContent = "예약됨";
+}
+
+function clearReservedQuestion() {
+  reservedQuestion = "";
+  reservedQuestionState.textContent = "무작위";
+}
+
+function openInfoModal(title, content) {
+  modalTitle.textContent = title;
+  modalBody.innerHTML = content || "표시할 내용이 없습니다.";
+  infoModal.hidden = false;
+  closeModalBtn.focus();
+}
+
+function closeInfoModal() {
+  infoModal.hidden = true;
+  modalBody.innerHTML = "";
+}
+
+function handleModalClick(event) {
+  const deleteButton = event.target.closest("[data-delete-record]");
+  if (!deleteButton) return;
+
+  deletePracticeRecord(Number(deleteButton.dataset.deleteRecord));
+  openInfoModal("최근 답변 기록", practiceHistory.innerHTML);
+}
+
+function deletePracticeRecord(index) {
+  const records = getPracticeRecords();
+  records.splice(index, 1);
+  localStorage.setItem("practiceInterviewRecords", JSON.stringify(records));
+  renderPracticeHistory();
 }
 
 function stopPreviewStream() {

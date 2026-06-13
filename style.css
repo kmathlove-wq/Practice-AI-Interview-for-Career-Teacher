@@ -133,6 +133,15 @@ h1 {
   line-height: 1.35;
 }
 
+.question-box.long-question h2 {
+  font-size: clamp(20px, 2.35vw, 30px);
+}
+
+.question-box.very-long-question h2 {
+  font-size: clamp(18px, 1.85vw, 24px);
+  line-height: 1.42;
+}
+
 .timer-card {
   display: flex;
   justify-content: space-between;
@@ -184,6 +193,7 @@ h1 {
   padding: 0 24px;
   cursor: pointer;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .primary-btn {
@@ -222,6 +232,11 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.guide-panel,
+.history-panel {
+  display: none;
+}
+
 .tool-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -248,6 +263,39 @@ button:disabled {
   white-space: nowrap;
 }
 
+.reservation-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.result-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
+.mini-btn {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--primary);
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mini-btn:hover {
+  border-color: var(--primary);
+}
+
 .question-picker-label {
   display: block;
   margin-top: 18px;
@@ -264,8 +312,19 @@ button:disabled {
   border-radius: 8px;
   background: #fff;
   color: var(--text);
-  padding: 0 12px;
+  padding: 0 48px 0 12px;
   font: inherit;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--primary) 50%),
+    linear-gradient(135deg, var(--primary) 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) 50%,
+    calc(100% - 14px) 50%;
+  background-repeat: no-repeat;
+  background-size: 8px 8px, 8px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .reserve-btn {
@@ -354,6 +413,30 @@ button:disabled {
   padding-bottom: 12px;
 }
 
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.delete-record-btn {
+  min-height: 30px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: var(--danger);
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.delete-record-btn:hover {
+  border-color: var(--danger);
+}
+
 .history-item:last-child {
   border-bottom: 0;
   padding-bottom: 0;
@@ -361,6 +444,60 @@ button:disabled {
 
 .history-item p {
   margin: 6px 0 0;
+}
+
+.history-item b {
+  color: var(--text);
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 33, 43, 0.32);
+}
+
+.modal-panel {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.modal-body {
+  max-height: calc(min(720px, 100vh - 48px) - 94px);
+  overflow: auto;
 }
 
 .result-box {
@@ -448,14 +585,15 @@ audio {
     height: calc(100vh - 24px);
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.15fr) minmax(300px, 0.95fr);
-    grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 0.85fr);
+    grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.18fr) minmax(0, 1.18fr);
+    grid-template-rows: auto minmax(0, 1.24fr) minmax(150px, 0.52fr) minmax(150px, 0.5fr);
     grid-template-areas:
       "top top top"
-      "video question guide"
-      "video timer result"
-      "order controls history";
-    gap: 14px;
+      "video question question"
+      "video timer timer"
+      "order controls result";
+    column-gap: 14px;
+    row-gap: 8px;
     padding: 18px;
     overflow: hidden;
   }
@@ -507,22 +645,35 @@ audio {
   }
 
   .guide-panel {
-    grid-area: guide;
+    display: none;
   }
 
   .order-panel {
     grid-area: order;
+    align-self: stretch;
+    overflow: visible;
   }
 
   .question-box {
     grid-area: question;
     min-height: 0;
-    padding: 22px;
+    padding: 38px 40px;
     overflow: auto;
   }
 
   .question-box h2 {
-    font-size: clamp(24px, 2.2vw, 34px);
+    font-size: clamp(34px, 3.2vw, 52px);
+    line-height: 1.28;
+  }
+
+  .question-box.long-question h2 {
+    font-size: clamp(26px, 2.45vw, 38px);
+    line-height: 1.34;
+  }
+
+  .question-box.very-long-question h2 {
+    font-size: clamp(22px, 1.95vw, 30px);
+    line-height: 1.42;
   }
 
   .timer-area {
@@ -534,11 +685,11 @@ audio {
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #fbfdff;
-    padding: 18px 22px;
+    padding: 24px 28px;
   }
 
   .timer-card strong {
-    font-size: clamp(54px, 5vw, 76px);
+    font-size: clamp(70px, 6.4vw, 108px);
   }
 
   .progress-track {
@@ -549,7 +700,7 @@ audio {
     grid-area: controls;
     align-self: stretch;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
     gap: 10px;
   }
 
@@ -562,7 +713,7 @@ audio {
   .tool-panel,
   .result-box {
     min-height: 0;
-    padding: 16px;
+    padding: 14px;
     overflow: hidden;
   }
 
@@ -572,8 +723,17 @@ audio {
   }
 
   .result-header {
-    gap: 12px;
+    gap: 10px;
     align-items: flex-start;
+  }
+
+  .reservation-actions {
+    gap: 6px;
+  }
+
+  .mini-btn {
+    min-height: 32px;
+    padding: 0 10px;
   }
 
   .camera-preview {
@@ -592,7 +752,8 @@ audio {
   }
 
   .question-picker {
-    min-height: 44px;
+    min-height: 46px;
+    font-size: 15px;
   }
 
   .reserve-btn {
@@ -621,7 +782,7 @@ audio {
   }
 
   .history-panel {
-    grid-area: history;
+    display: none;
   }
 
   .answer-result,
@@ -642,12 +803,12 @@ audio {
   .placeholder,
   #transcriptText {
     min-height: 0;
-    max-height: 120px;
+    max-height: 96px;
     overflow: auto;
   }
 
   .feedback-box {
-    max-height: 120px;
+    max-height: 90px;
     overflow: auto;
   }
 
@@ -661,15 +822,39 @@ audio {
   }
 
   .history-item p {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
+    white-space: normal;
   }
 }
 
 @media (max-width: 899px) {
   body {
     overflow: auto;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1180px) {
+  .practice-panel {
+    grid-template-columns: minmax(240px, 0.68fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 0.98fr) minmax(125px, 0.42fr) minmax(125px, 0.38fr);
+  }
+
+  .question-box {
+    padding: 26px 22px;
+  }
+
+  .question-box h2 {
+    font-size: clamp(28px, 3vw, 42px);
+  }
+
+  .question-box.long-question h2 {
+    font-size: clamp(24px, 2.5vw, 32px);
+  }
+
+  .question-box.very-long-question h2 {
+    font-size: clamp(20px, 2.1vw, 26px);
+  }
+
+  .controls {
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
   }
 }
