@@ -53,6 +53,14 @@ const infoModal = document.querySelector("#infoModal");
 const modalTitle = document.querySelector("#modalTitle");
 const modalBody = document.querySelector("#modalBody");
 const closeModalBtn = document.querySelector("#closeModalBtn");
+const confirmModal = document.querySelector("#confirmModal");
+const confirmTitle = document.querySelector("#confirmTitle");
+const confirmMessage = document.querySelector("#confirmMessage");
+const confirmInputLabel = document.querySelector("#confirmInputLabel");
+const confirmInput = document.querySelector("#confirmInput");
+const confirmError = document.querySelector("#confirmError");
+const confirmActions = document.querySelector("#confirmActions");
+const confirmCloseBtn = document.querySelector("#confirmCloseBtn");
 const improvementStore = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) || null;
 
 let questions = [...FALLBACK_QUESTIONS];
@@ -72,6 +80,7 @@ let answerStartedAt = 0;
 let isVideoRecording = false;
 let reservedQuestion = "";
 let currentTimerRemaining = 0;
+let activeConfirmDialog = null;
 
 init();
 
@@ -89,6 +98,14 @@ function init() {
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
   openHistoryBtn.addEventListener("click", () => openInfoModal("최근 답변 기록", practiceHistory.innerHTML));
   closeModalBtn.addEventListener("click", closeInfoModal);
+  confirmCloseBtn.addEventListener("click", cancelConfirmDialog);
+  confirmActions.addEventListener("click", handleConfirmAction);
+  confirmInput.addEventListener("keydown", handleConfirmInputKeydown);
+  confirmModal.addEventListener("click", (event) => {
+    if (event.target.hasAttribute("data-confirm-cancel")) {
+      cancelConfirmDialog();
+    }
+  });
   modalBody.addEventListener("click", handleModalClick);
   infoModal.addEventListener("click", (event) => {
     if (event.target.hasAttribute("data-close-modal")) {
@@ -96,6 +113,11 @@ function init() {
     }
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !confirmModal.hidden) {
+      cancelConfirmDialog();
+      return;
+    }
+
     if (event.key === "Escape" && !infoModal.hidden) {
       closeInfoModal();
     }
@@ -850,12 +872,28 @@ async function deleteImprovement(id) {
     return;
   }
 
-  if (!window.confirm("이 개선사항을 삭제할까요?")) return;
+  const confirmed = await openConfirmDialog({
+    title: "개선사항을 삭제할까요?",
+    message: "삭제하면 이 개선사항 목록에서 사라집니다.",
+    confirmText: "삭제",
+    cancelText: "취소",
+    danger: true
+  });
+
+  if (!confirmed) return;
   await removeImprovement(id, "삭제했습니다.");
 }
 
 async function completeImprovement(id) {
-  const password = window.prompt("수정 완료 비밀번호를 입력하세요.");
+  const password = await openConfirmDialog({
+    title: "수정 완료",
+    message: "비밀번호를 입력하면 이 개선사항이 목록에서 사라집니다.",
+    inputLabel: "비밀번호",
+    inputType: "password",
+    confirmText: "완료",
+    cancelText: "취소"
+  });
+
   if (password === null) return;
 
   if (password !== IMPROVEMENT_COMPLETION_PASSWORD) {
@@ -941,6 +979,87 @@ function formatImprovementDate(value) {
     hour: "2-digit",
     minute: "2-digit"
   });
+}
+
+function openConfirmDialog(options) {
+  const {
+    title,
+    message = "",
+    inputLabel = "",
+    inputType = "text",
+    confirmText = "확인",
+    cancelText = "취소",
+    danger = false
+  } = options;
+
+  confirmTitle.textContent = title;
+  confirmMessage.textContent = message;
+  confirmInputLabel.textContent = inputLabel;
+  confirmInputLabel.hidden = !inputLabel;
+  confirmInput.hidden = !inputLabel;
+  confirmInput.value = "";
+  confirmInput.type = inputType;
+  confirmError.textContent = "";
+  confirmActions.innerHTML = `
+    <button class="confirm-secondary-btn" type="button" data-confirm-cancel>${escapeHtml(cancelText)}</button>
+    <button class="confirm-primary-btn${danger ? " is-danger" : ""}" type="button" data-confirm-ok>${escapeHtml(confirmText)}</button>
+  `;
+  confirmModal.hidden = false;
+
+  if (inputLabel) {
+    confirmInput.focus();
+  } else {
+    confirmActions.querySelector("[data-confirm-ok]")?.focus();
+  }
+
+  return new Promise((resolve) => {
+    const finish = (value) => {
+      confirmModal.hidden = true;
+      confirmActions.innerHTML = "";
+      activeConfirmDialog = null;
+      resolve(value);
+    };
+
+    activeConfirmDialog = { finish, hasInput: Boolean(inputLabel) };
+  });
+}
+
+function handleConfirmAction(event) {
+  const cancelButton = event.target.closest("[data-confirm-cancel]");
+  if (cancelButton) {
+    cancelConfirmDialog();
+    return;
+  }
+
+  const okButton = event.target.closest("[data-confirm-ok]");
+  if (!okButton || !activeConfirmDialog) return;
+
+  if (activeConfirmDialog.hasInput && !confirmInput.value.trim()) {
+    confirmError.textContent = "값을 입력해 주세요.";
+    confirmInput.focus();
+    return;
+  }
+
+  activeConfirmDialog.finish(activeConfirmDialog.hasInput ? confirmInput.value : true);
+}
+
+function handleConfirmInputKeydown(event) {
+  if (event.key !== "Enter" || !activeConfirmDialog) {
+    return;
+  }
+
+  event.preventDefault();
+  if (!confirmInput.value.trim()) {
+    confirmError.textContent = "값을 입력해 주세요.";
+    return;
+  }
+
+  activeConfirmDialog.finish(confirmInput.value);
+}
+
+function cancelConfirmDialog() {
+  if (!activeConfirmDialog) return;
+  activeConfirmDialog.finish(null);
 }
 
 function closeInfoModal() {

@@ -116,6 +116,7 @@ startPractice()
 .order-panel        → #questionPicker, #randomQuestionBtn
 .answer-result      → 결과 버튼, 미디어 플레이어, transcript, feedback
 #infoModal          → 가이드/기록/개선사항 모달
+#confirmModal       → 개선사항 삭제/수정 완료 확인 모달
 ```
 
 ### 개선사항

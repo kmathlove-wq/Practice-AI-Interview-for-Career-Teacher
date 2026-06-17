@@ -139,6 +139,19 @@
     </section>
   </div>
 
+  <div id="confirmModal" class="confirm-modal" hidden>
+    <div class="confirm-backdrop" data-confirm-cancel></div>
+    <section class="confirm-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <button id="confirmCloseBtn" class="confirm-close-btn" type="button" aria-label="닫기">×</button>
+      <h2 id="confirmTitle">확인</h2>
+      <p id="confirmMessage" class="confirm-message"></p>
+      <label id="confirmInputLabel" class="confirm-input-label" for="confirmInput" hidden>비밀번호</label>
+      <input id="confirmInput" class="confirm-input" type="password" autocomplete="current-password" hidden>
+      <div id="confirmError" class="confirm-error" aria-live="polite"></div>
+      <div id="confirmActions" class="confirm-actions"></div>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="main.js"></script>
 </body>
