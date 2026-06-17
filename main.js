@@ -17,9 +17,10 @@ const FALLBACK_QUESTIONS = [
 
 const PREP_SECONDS = 10;
 const ANSWER_SECONDS = 90;
-const DISQUS_SHORTNAME = "practice-interview-with-a-career-teacher";
-const DISQUS_IMPROVEMENTS_URL = "https://xn--2z1b65dvvmomhr2j.kro.kr/improvements";
-const DISQUS_IMPROVEMENTS_IDENTIFIER = "career-teacher-interview-improvements";
+const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
+const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
+const IMPROVEMENT_COMPLETION_PASSWORD = "1+1=1+1=1+1=1";
 
 const questionText = document.querySelector("#questionText");
 const questionBox = document.querySelector(".question-box");
@@ -52,6 +53,7 @@ const infoModal = document.querySelector("#infoModal");
 const modalTitle = document.querySelector("#modalTitle");
 const modalBody = document.querySelector("#modalBody");
 const closeModalBtn = document.querySelector("#closeModalBtn");
+const improvementStore = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) || null;
 
 let questions = [...FALLBACK_QUESTIONS];
 let currentQuestion = "";
@@ -691,33 +693,254 @@ function openInfoModal(title, content) {
 function openImprovementsModal() {
   modalTitle.textContent = "개선사항";
   modalBody.innerHTML = `
-    <div id="disqus_thread" class="disqus-thread"></div>
-    <noscript>JavaScript를 켜면 Disqus 개선사항 댓글을 볼 수 있습니다.</noscript>
+    <form id="improvementForm" class="improvement-form">
+      <input id="improvementEditId" type="hidden">
+      <label class="improvement-label" for="improvementInput">개선사항 입력</label>
+      <textarea id="improvementInput" class="improvement-input" rows="4" maxlength="500" placeholder="불편한 점이나 개선 아이디어를 적어 주세요." required></textarea>
+      <div class="improvement-form-actions">
+        <p id="improvementStatus" class="improvement-status" aria-live="polite"></p>
+        <div class="improvement-buttons">
+          <button id="cancelImprovementEditBtn" class="mini-btn" type="button" hidden>수정 취소</button>
+          <button id="saveImprovementBtn" class="primary-btn compact-btn" type="submit">등록</button>
+        </div>
+      </div>
+    </form>
+    <div id="improvementList" class="improvement-list">개선사항을 불러오는 중입니다.</div>
   `;
   infoModal.hidden = false;
   closeModalBtn.focus();
-  loadDisqusImprovementThread();
+  setupImprovementForm();
+  loadImprovements();
 }
 
-function loadDisqusImprovementThread() {
-  window.disqus_config = function () {
-    this.page.url = DISQUS_IMPROVEMENTS_URL;
-    this.page.identifier = DISQUS_IMPROVEMENTS_IDENTIFIER;
-    this.page.title = "진로전담교사 면접 연습 개선사항";
-  };
+function setupImprovementForm() {
+  const form = document.querySelector("#improvementForm");
+  const cancelEditBtn = document.querySelector("#cancelImprovementEditBtn");
+  if (!form || !cancelEditBtn) return;
 
-  if (window.DISQUS) {
-    window.DISQUS.reset({
-      reload: true,
-      config: window.disqus_config
-    });
+  form.addEventListener("submit", saveImprovement);
+  cancelEditBtn.addEventListener("click", resetImprovementForm);
+}
+
+async function loadImprovements() {
+  const list = document.querySelector("#improvementList");
+  if (!list) return;
+
+  if (!improvementStore) {
+    list.textContent = "개선사항 저장소를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.";
     return;
   }
 
-  const script = document.createElement("script");
-  script.src = `https://${DISQUS_SHORTNAME}.disqus.com/embed.js`;
-  script.setAttribute("data-timestamp", String(Date.now()));
-  (document.head || document.body).append(script);
+  const { data, error } = await improvementStore
+    .from("improvement_items")
+    .select("id, content, author_id, created_at, updated_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    list.textContent = "개선사항을 불러오지 못했습니다. Supabase 테이블과 정책을 확인해 주세요.";
+    return;
+  }
+
+  renderImprovementList(data || []);
+}
+
+function renderImprovementList(items) {
+  const list = document.querySelector("#improvementList");
+  if (!list) return;
+
+  if (items.length === 0) {
+    list.innerHTML = `<p class="improvement-empty">아직 등록된 개선사항이 없습니다.</p>`;
+    return;
+  }
+
+  const authorId = getImprovementAuthorId();
+  list.innerHTML = items
+    .map((item) => {
+      const isMine = item.author_id === authorId;
+      const createdAt = formatImprovementDate(item.created_at);
+      const mineActions = isMine
+        ? `
+          <button class="mini-btn" type="button" data-edit-improvement="${escapeHtml(item.id)}">수정</button>
+          <button class="delete-record-btn" type="button" data-delete-improvement="${escapeHtml(item.id)}">삭제</button>
+        `
+        : "";
+
+      return `
+        <article class="improvement-item">
+          <div class="improvement-item-header">
+            <strong>${isMine ? "내 개선사항" : "공유 개선사항"}</strong>
+            <span>${escapeHtml(createdAt)}</span>
+          </div>
+          <p>${escapeHtml(item.content)}</p>
+          <div class="improvement-item-actions">
+            ${mineActions}
+            <button class="complete-improvement-btn" type="button" data-complete-improvement="${escapeHtml(item.id)}">수정 완료</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function saveImprovement(event) {
+  event.preventDefault();
+  const input = document.querySelector("#improvementInput");
+  const editId = document.querySelector("#improvementEditId")?.value || "";
+  const content = input?.value.trim() || "";
+
+  if (!input || !content) return;
+  if (!improvementStore) {
+    setImprovementStatus("개선사항 저장소를 사용할 수 없습니다.", true);
+    return;
+  }
+
+  setImprovementStatus(editId ? "개선사항을 수정하는 중입니다." : "개선사항을 등록하는 중입니다.");
+
+  const authorId = getImprovementAuthorId();
+  const query = editId
+    ? improvementStore
+      .from("improvement_items")
+      .update({ content, updated_at: new Date().toISOString() })
+      .eq("id", editId)
+      .eq("author_id", authorId)
+    : improvementStore
+      .from("improvement_items")
+      .insert({ content, author_id: authorId });
+
+  const { error } = await query;
+  if (error) {
+    setImprovementStatus("저장하지 못했습니다. 잠시 후 다시 시도해 주세요.", true);
+    return;
+  }
+
+  resetImprovementForm();
+  setImprovementStatus(editId ? "수정했습니다." : "등록했습니다.");
+  await loadImprovements();
+}
+
+async function editImprovement(id) {
+  const item = await getImprovementById(id);
+  if (!item) return;
+
+  if (item.author_id !== getImprovementAuthorId()) {
+    setImprovementStatus("다른 사람이 입력한 개선사항은 수정할 수 없습니다.", true);
+    return;
+  }
+
+  const editId = document.querySelector("#improvementEditId");
+  const input = document.querySelector("#improvementInput");
+  const saveBtn = document.querySelector("#saveImprovementBtn");
+  const cancelEditBtn = document.querySelector("#cancelImprovementEditBtn");
+  if (!editId || !input || !saveBtn || !cancelEditBtn) return;
+
+  editId.value = item.id;
+  input.value = item.content;
+  saveBtn.textContent = "수정 저장";
+  cancelEditBtn.hidden = false;
+  input.focus();
+  setImprovementStatus("수정할 내용을 입력하세요.");
+}
+
+async function deleteImprovement(id) {
+  const item = await getImprovementById(id);
+  if (!item) return;
+
+  if (item.author_id !== getImprovementAuthorId()) {
+    setImprovementStatus("다른 사람이 입력한 개선사항은 삭제할 수 없습니다.", true);
+    return;
+  }
+
+  if (!window.confirm("이 개선사항을 삭제할까요?")) return;
+  await removeImprovement(id, "삭제했습니다.");
+}
+
+async function completeImprovement(id) {
+  const password = window.prompt("수정 완료 비밀번호를 입력하세요.");
+  if (password === null) return;
+
+  if (password !== IMPROVEMENT_COMPLETION_PASSWORD) {
+    setImprovementStatus("비밀번호가 맞지 않습니다.", true);
+    return;
+  }
+
+  await removeImprovement(id, "수정 완료 처리했습니다.");
+}
+
+async function removeImprovement(id, successMessage) {
+  if (!improvementStore) {
+    setImprovementStatus("개선사항 저장소를 사용할 수 없습니다.", true);
+    return;
+  }
+
+  const { error } = await improvementStore
+    .from("improvement_items")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    setImprovementStatus("처리하지 못했습니다. 잠시 후 다시 시도해 주세요.", true);
+    return;
+  }
+
+  resetImprovementForm();
+  setImprovementStatus(successMessage);
+  await loadImprovements();
+}
+
+async function getImprovementById(id) {
+  if (!improvementStore) return null;
+
+  const { data, error } = await improvementStore
+    .from("improvement_items")
+    .select("id, content, author_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    setImprovementStatus("개선사항 정보를 찾지 못했습니다.", true);
+    return null;
+  }
+
+  return data;
+}
+
+function resetImprovementForm() {
+  const editId = document.querySelector("#improvementEditId");
+  const input = document.querySelector("#improvementInput");
+  const saveBtn = document.querySelector("#saveImprovementBtn");
+  const cancelEditBtn = document.querySelector("#cancelImprovementEditBtn");
+
+  if (editId) editId.value = "";
+  if (input) input.value = "";
+  if (saveBtn) saveBtn.textContent = "등록";
+  if (cancelEditBtn) cancelEditBtn.hidden = true;
+}
+
+function getImprovementAuthorId() {
+  let authorId = localStorage.getItem(IMPROVEMENT_AUTHOR_KEY);
+  if (!authorId) {
+    authorId = window.crypto?.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+    localStorage.setItem(IMPROVEMENT_AUTHOR_KEY, authorId);
+  }
+  return authorId;
+}
+
+function setImprovementStatus(message, isError = false) {
+  const status = document.querySelector("#improvementStatus");
+  if (!status) return;
+
+  status.textContent = message;
+  status.classList.toggle("is-error", isError);
+}
+
+function formatImprovementDate(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function closeInfoModal() {
@@ -725,12 +948,30 @@ function closeInfoModal() {
   modalBody.innerHTML = "";
 }
 
-function handleModalClick(event) {
+async function handleModalClick(event) {
   const deleteButton = event.target.closest("[data-delete-record]");
-  if (!deleteButton) return;
+  if (deleteButton) {
+    deletePracticeRecord(Number(deleteButton.dataset.deleteRecord));
+    openInfoModal("최근 답변 기록", practiceHistory.innerHTML);
+    return;
+  }
 
-  deletePracticeRecord(Number(deleteButton.dataset.deleteRecord));
-  openInfoModal("최근 답변 기록", practiceHistory.innerHTML);
+  const editImprovementButton = event.target.closest("[data-edit-improvement]");
+  if (editImprovementButton) {
+    await editImprovement(editImprovementButton.dataset.editImprovement);
+    return;
+  }
+
+  const deleteImprovementButton = event.target.closest("[data-delete-improvement]");
+  if (deleteImprovementButton) {
+    await deleteImprovement(deleteImprovementButton.dataset.deleteImprovement);
+    return;
+  }
+
+  const completeImprovementButton = event.target.closest("[data-complete-improvement]");
+  if (completeImprovementButton) {
+    await completeImprovement(completeImprovementButton.dataset.completeImprovement);
+  }
 }
 
 function deletePracticeRecord(index) {

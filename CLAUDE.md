@@ -37,7 +37,7 @@ python3 -m http.server 8000
 - `MediaRecorder`
 - `SpeechRecognition` / `webkitSpeechRecognition`
 - `localStorage`
-- Disqus 댓글 임베드
+- Supabase 개선사항 저장소
 - GitHub Pages
 
 ## 주요 상수
@@ -90,7 +90,7 @@ startPractice()
 | 다시 시작 | 준비시간 제외, 답변 시작 후 20초가 지나기 전까지만 같은 질문 재시작 |
 | 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인 |
 | 무작위 | 예약 질문 해제 |
-| 개선사항 | Disqus 개선사항 댓글 모달 열기 |
+| 개선사항 | Supabase 개선사항 모달 열기 |
 | 가이드 보기 | 면접 가이드 모달 열기 |
 | 기록 보기 | 최근 답변 기록 모달 열기 |
 | 삭제 | 해당 기록만 localStorage에서 삭제 |
@@ -120,9 +120,11 @@ startPractice()
 
 ### 개선사항
 
-- `개선사항` 버튼은 Disqus 댓글 모달을 연다.
-- Disqus shortname은 `practice-interview-with-a-career-teacher`다.
-- 모든 사용자가 같은 댓글 thread를 보도록 `DISQUS_IMPROVEMENTS_IDENTIFIER`와 `DISQUS_IMPROVEMENTS_URL`을 고정한다.
+- `개선사항` 버튼은 직접 만든 Supabase 개선사항 모달을 연다.
+- Supabase URL은 `https://habehqibpnazvsmefgew.supabase.co`다.
+- 개선사항은 `improvement_items` 테이블에 저장한다.
+- 현재 브라우저의 `practiceInterviewImprovementAuthorId`와 항목의 `author_id`가 같을 때만 수정/삭제 버튼을 표시한다.
+- `수정 완료`는 비밀번호 `1+1=1+1=1+1=1` 확인 후 항목을 삭제한다.
 
 ## 스타일/레이아웃 주의사항
 

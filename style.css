@@ -517,9 +517,126 @@ button:disabled {
   overflow: auto;
 }
 
-.disqus-thread {
-  min-height: 420px;
+.improvement-form {
+  display: grid;
+  gap: 12px;
   padding-top: 16px;
+}
+
+.improvement-label {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.improvement-input {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdff;
+  color: var(--text);
+  padding: 14px;
+  font: inherit;
+  line-height: 1.6;
+}
+
+.improvement-input:focus {
+  outline: 2px solid rgba(23, 107, 135, 0.22);
+  border-color: var(--primary);
+}
+
+.improvement-form-actions,
+.improvement-item-header,
+.improvement-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.improvement-status {
+  min-height: 22px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.improvement-status.is-error {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.improvement-buttons,
+.improvement-item-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.compact-btn {
+  min-height: 36px;
+  padding: 0 16px;
+}
+
+.improvement-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.improvement-empty,
+.improvement-item {
+  border-radius: 8px;
+  background: #f6f9fb;
+  padding: 16px;
+}
+
+.improvement-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.improvement-item {
+  border: 1px solid var(--line);
+}
+
+.improvement-item-header {
+  align-items: baseline;
+}
+
+.improvement-item-header strong {
+  color: var(--text);
+}
+
+.improvement-item-header span {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.improvement-item p {
+  margin: 10px 0 14px;
+  color: var(--text);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.complete-improvement-btn {
+  min-height: 30px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: #eef9fb;
+  color: var(--primary);
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.complete-improvement-btn:hover {
+  background: #e0f2f6;
 }
 
 .result-box {
@@ -577,6 +694,26 @@ audio {
   .top-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .improvement-form-actions,
+  .improvement-item-header,
+  .improvement-item-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .improvement-buttons,
+  .improvement-item-actions {
+    justify-content: stretch;
+  }
+
+  .improvement-buttons .mini-btn,
+  .improvement-buttons .primary-btn,
+  .improvement-item-actions .mini-btn,
+  .improvement-item-actions .delete-record-btn,
+  .improvement-item-actions .complete-improvement-btn {
+    width: 100%;
   }
 
   .brand-logo {
