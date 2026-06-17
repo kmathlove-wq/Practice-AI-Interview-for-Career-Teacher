@@ -486,7 +486,7 @@ button:disabled {
   z-index: 30;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 20px;
 }
 
 .confirm-modal[hidden] {
@@ -502,7 +502,7 @@ button:disabled {
 .confirm-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(20, 33, 43, 0.42);
+  background: rgba(20, 33, 43, 0.36);
 }
 
 .modal-panel {
@@ -519,113 +519,133 @@ button:disabled {
 
 .confirm-panel {
   position: relative;
-  width: min(720px, 100%);
-  border: 1px solid rgba(216, 227, 234, 0.9);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 28px 70px rgba(20, 33, 43, 0.22);
-  padding: 34px 24px 24px;
+  width: min(520px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 24px;
 }
 
 .confirm-close-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 56px;
-  height: 56px;
-  border: 0;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
   border-radius: 50%;
-  background: #f0f1ff;
-  color: #111827;
+  background: #f6f9fb;
+  color: var(--muted);
   cursor: pointer;
-  font-size: 36px;
+  font-size: 24px;
   font-weight: 900;
   line-height: 1;
 }
 
+.confirm-close-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .confirm-panel h2 {
   margin: 0;
-  padding-right: 68px;
-  color: #12172a;
-  font-size: clamp(30px, 4vw, 48px);
-  line-height: 1.1;
+  padding-right: 48px;
+  color: var(--text);
+  font-size: 26px;
+  line-height: 1.2;
 }
 
 .confirm-message {
-  margin: 22px 0 0;
-  color: #5f6b7a;
-  font-size: 18px;
-  font-weight: 800;
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.55;
 }
 
 .confirm-input-label {
   display: block;
-  margin-top: 26px;
-  color: #22283a;
-  font-size: 20px;
+  margin-top: 20px;
+  color: var(--text);
+  font-size: 15px;
   font-weight: 700;
 }
 
 .confirm-input {
   width: 100%;
-  min-height: 58px;
-  margin-top: 14px;
-  border: 2px solid #111;
-  border-radius: 14px;
-  background: #fff;
-  color: #111827;
-  padding: 0 16px;
+  min-height: 48px;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdff;
+  color: var(--text);
+  padding: 0 12px;
   font: inherit;
-  font-size: 22px;
+  font-size: 16px;
 }
 
 .confirm-input:focus {
-  outline: 3px solid rgba(83, 91, 242, 0.2);
+  outline: 2px solid rgba(23, 107, 135, 0.18);
+  border-color: var(--primary);
 }
 
 .confirm-error {
-  min-height: 24px;
-  margin-top: 10px;
+  min-height: 20px;
+  margin-top: 8px;
   color: var(--danger);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .confirm-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .confirm-primary-btn,
 .confirm-secondary-btn {
-  min-height: 70px;
-  border-radius: 18px;
+  min-height: 44px;
+  border-radius: 10px;
   cursor: pointer;
-  padding: 0 22px;
+  padding: 0 16px;
   font: inherit;
-  font-size: 24px;
-  font-weight: 900;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .confirm-primary-btn {
   border: 0;
-  background: linear-gradient(110deg, #5b5cf6 0%, #26a7a2 100%);
+  background: var(--primary);
   color: #fff;
 }
 
+.confirm-primary-btn:hover {
+  background: var(--primary-dark);
+}
+
 .confirm-primary-btn.is-danger {
-  border: 2px solid #111;
-  background: linear-gradient(110deg, #ffe66b 0%, #eca400 100%);
-  color: #111827;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: var(--danger);
+}
+
+.confirm-primary-btn.is-danger:hover {
+  border-color: var(--danger);
+  background: #ffedd5;
 }
 
 .confirm-secondary-btn {
-  border: 0;
-  background: #eaf0f4;
-  color: #111827;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+}
+
+.confirm-secondary-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .modal-header {
@@ -866,13 +886,13 @@ audio {
   }
 
   .confirm-panel {
-    padding: 28px 20px 20px;
+    padding: 22px 18px 18px;
   }
 
   .confirm-close-btn {
-    width: 48px;
-    height: 48px;
-    font-size: 30px;
+    width: 34px;
+    height: 34px;
+    font-size: 22px;
   }
 
   .confirm-actions {
@@ -881,8 +901,8 @@ audio {
 
   .confirm-primary-btn,
   .confirm-secondary-btn {
-    min-height: 58px;
-    font-size: 20px;
+    min-height: 44px;
+    font-size: 15px;
   }
 }
 
