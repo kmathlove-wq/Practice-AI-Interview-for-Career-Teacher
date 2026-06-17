@@ -83,6 +83,8 @@ let isVideoRecording = false;
 let reservedQuestion = "";
 let currentTimerRemaining = 0;
 let activeConfirmDialog = null;
+let improvementRefreshTimerId = null;
+let improvementRealtimeChannel = null;
 
 init();
 
@@ -736,6 +738,7 @@ function openImprovementsModal() {
   closeModalBtn.focus();
   setupImprovementForm();
   loadImprovements();
+  startImprovementAutoRefresh();
 }
 
 function setupImprovementForm() {
@@ -767,6 +770,43 @@ async function loadImprovements() {
   }
 
   renderImprovementList(data || []);
+}
+
+function startImprovementAutoRefresh() {
+  stopImprovementAutoRefresh();
+
+  improvementRefreshTimerId = window.setInterval(() => {
+    if (!infoModal.hidden && document.querySelector("#improvementList")) {
+      loadImprovements();
+    }
+  }, 5000);
+
+  if (!improvementStore?.channel) return;
+
+  improvementRealtimeChannel = improvementStore
+    .channel("improvement-items-live")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "improvement_items" },
+      () => {
+        if (!infoModal.hidden && document.querySelector("#improvementList")) {
+          loadImprovements();
+        }
+      }
+    )
+    .subscribe();
+}
+
+function stopImprovementAutoRefresh() {
+  if (improvementRefreshTimerId) {
+    window.clearInterval(improvementRefreshTimerId);
+    improvementRefreshTimerId = null;
+  }
+
+  if (improvementRealtimeChannel && improvementStore?.removeChannel) {
+    improvementStore.removeChannel(improvementRealtimeChannel);
+    improvementRealtimeChannel = null;
+  }
 }
 
 function renderImprovementList(items) {
@@ -1077,6 +1117,7 @@ function cancelConfirmDialog() {
 }
 
 function closeInfoModal() {
+  stopImprovementAutoRefresh();
   infoModal.hidden = true;
   modalBody.innerHTML = "";
 }
