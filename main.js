@@ -59,6 +59,7 @@ let audioChunks = [];
 let recognition = null;
 let shouldRecognize = false;
 let transcript = "";
+let recognitionCommittedTranscript = "";
 let phase = "idle";
 let recordingSessionId = 0;
 let answerStartedAt = 0;
@@ -77,8 +78,6 @@ function init() {
   retryBtn.addEventListener("click", retryCurrentQuestion);
   deviceCheckBtn.addEventListener("click", checkEnvironment);
   questionPicker.addEventListener("change", reserveSelectedQuestion);
-  questionPicker.addEventListener("click", reserveSelectedQuestion);
-  questionPicker.addEventListener("keyup", reserveSelectedQuestion);
   randomQuestionBtn.addEventListener("click", clearReservedQuestion);
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
   openHistoryBtn.addEventListener("click", () => openInfoModal("최근 답변 기록", practiceHistory.innerHTML));
@@ -144,7 +143,7 @@ async function retryCurrentQuestion() {
   resetResult();
   setQuestionText(currentQuestion);
   renderAnswerGuide(currentQuestion);
-  await runCurrentQuestion();
+  await runAnswerPhase();
 }
 
 async function runCurrentQuestion() {
@@ -155,6 +154,13 @@ async function runCurrentQuestion() {
   await runTimer(PREP_SECONDS, "준비 시간");
 
   if (phase !== "prep") return;
+
+  await runAnswerPhase();
+}
+
+async function runAnswerPhase() {
+  startBtn.disabled = true;
+  skipBtn.disabled = false;
 
   const recordingStarted = await startRecording();
   if (!recordingStarted) {
@@ -270,6 +276,7 @@ async function getInterviewStream() {
 function startSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   transcript = "";
+  recognitionCommittedTranscript = "";
   shouldRecognize = true;
 
   if (!SpeechRecognition) {
@@ -283,8 +290,12 @@ function startSpeechRecognition() {
   recognition.interimResults = true;
 
   recognition.addEventListener("result", (event) => {
-    const text = Array.from(event.results)
+    const sessionTranscript = Array.from(event.results)
       .map((result) => result[0].transcript)
+      .join(" ")
+      .trim();
+    const text = [recognitionCommittedTranscript, sessionTranscript]
+      .filter(Boolean)
       .join(" ")
       .trim();
 
@@ -294,6 +305,7 @@ function startSpeechRecognition() {
 
   recognition.addEventListener("end", () => {
     if (shouldRecognize && phase === "answer") {
+      recognitionCommittedTranscript = transcript.trim();
       try {
         recognition.start();
       } catch {
@@ -399,6 +411,7 @@ function resetResult() {
   recordingSessionId += 1;
   audioChunks = [];
   transcript = "";
+  recognitionCommittedTranscript = "";
   answerStartedAt = 0;
   isVideoRecording = false;
   videoPlayer.hidden = true;
@@ -440,6 +453,8 @@ async function checkEnvironment() {
     updateEnvironmentItem("microphone", message, false);
     return;
   }
+
+  stopPreviewStream();
 
   try {
     previewStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
