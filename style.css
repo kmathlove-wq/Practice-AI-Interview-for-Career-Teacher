@@ -61,6 +61,15 @@ button {
   min-width: 0;
 }
 
+.top-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  align-items: center;
+}
+
 .brand-logo {
   width: 64px;
   height: 64px;
@@ -508,6 +517,11 @@ button:disabled {
   overflow: auto;
 }
 
+.disqus-thread {
+  min-height: 420px;
+  padding-top: 16px;
+}
+
 .result-box {
   border-top: 1px solid var(--line);
   padding-top: 24px;
@@ -558,6 +572,11 @@ audio {
 
   .brand {
     align-items: flex-start;
+  }
+
+  .top-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .brand-logo {

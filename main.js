@@ -17,6 +17,9 @@ const FALLBACK_QUESTIONS = [
 
 const PREP_SECONDS = 10;
 const ANSWER_SECONDS = 90;
+const DISQUS_SHORTNAME = "practice-interview-with-a-career-teacher";
+const DISQUS_IMPROVEMENTS_URL = "https://xn--2z1b65dvvmomhr2j.kro.kr/improvements";
+const DISQUS_IMPROVEMENTS_IDENTIFIER = "career-teacher-interview-improvements";
 
 const questionText = document.querySelector("#questionText");
 const questionBox = document.querySelector(".question-box");
@@ -42,6 +45,7 @@ const historyCount = document.querySelector("#historyCount");
 const questionPicker = document.querySelector("#questionPicker");
 const randomQuestionBtn = document.querySelector("#randomQuestionBtn");
 const reservedQuestionState = document.querySelector("#reservedQuestionState");
+const openImprovementsBtn = document.querySelector("#openImprovementsBtn");
 const openGuideBtn = document.querySelector("#openGuideBtn");
 const openHistoryBtn = document.querySelector("#openHistoryBtn");
 const infoModal = document.querySelector("#infoModal");
@@ -79,6 +83,7 @@ function init() {
   deviceCheckBtn.addEventListener("click", checkEnvironment);
   questionPicker.addEventListener("change", reserveSelectedQuestion);
   randomQuestionBtn.addEventListener("click", clearReservedQuestion);
+  openImprovementsBtn.addEventListener("click", openImprovementsModal);
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
   openHistoryBtn.addEventListener("click", () => openInfoModal("최근 답변 기록", practiceHistory.innerHTML));
   closeModalBtn.addEventListener("click", closeInfoModal);
@@ -681,6 +686,38 @@ function openInfoModal(title, content) {
   modalBody.innerHTML = content || "표시할 내용이 없습니다.";
   infoModal.hidden = false;
   closeModalBtn.focus();
+}
+
+function openImprovementsModal() {
+  modalTitle.textContent = "개선사항";
+  modalBody.innerHTML = `
+    <div id="disqus_thread" class="disqus-thread"></div>
+    <noscript>JavaScript를 켜면 Disqus 개선사항 댓글을 볼 수 있습니다.</noscript>
+  `;
+  infoModal.hidden = false;
+  closeModalBtn.focus();
+  loadDisqusImprovementThread();
+}
+
+function loadDisqusImprovementThread() {
+  window.disqus_config = function () {
+    this.page.url = DISQUS_IMPROVEMENTS_URL;
+    this.page.identifier = DISQUS_IMPROVEMENTS_IDENTIFIER;
+    this.page.title = "진로전담교사 면접 연습 개선사항";
+  };
+
+  if (window.DISQUS) {
+    window.DISQUS.reset({
+      reload: true,
+      config: window.disqus_config
+    });
+    return;
+  }
+
+  const script = document.createElement("script");
+  script.src = `https://${DISQUS_SHORTNAME}.disqus.com/embed.js`;
+  script.setAttribute("data-timestamp", String(Date.now()));
+  (document.head || document.body).append(script);
 }
 
 function closeInfoModal() {

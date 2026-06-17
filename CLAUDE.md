@@ -37,6 +37,7 @@ python3 -m http.server 8000
 - `MediaRecorder`
 - `SpeechRecognition` / `webkitSpeechRecognition`
 - `localStorage`
+- Disqus 댓글 임베드
 - GitHub Pages
 
 ## 주요 상수
@@ -89,6 +90,7 @@ startPractice()
 | 다시 시작 | 준비시간 제외, 답변 시작 후 20초가 지나기 전까지만 같은 질문 재시작 |
 | 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인 |
 | 무작위 | 예약 질문 해제 |
+| 개선사항 | Disqus 개선사항 댓글 모달 열기 |
 | 가이드 보기 | 면접 가이드 모달 열기 |
 | 기록 보기 | 최근 답변 기록 모달 열기 |
 | 삭제 | 해당 기록만 localStorage에서 삭제 |
@@ -106,14 +108,21 @@ startPractice()
 
 ```
 .top-bar            → 로고/제목/상태 표시
+.top-actions        → #openImprovementsBtn, #phaseLabel
 .question-box       → #questionText
 .timer-area         → #timerTitle, #timerText, #progressBar
 .controls           → 시작, 건너뛰기, 다시 시작, 환경 체크
 .video-panel        → #cameraPreview, #environmentList
 .order-panel        → #questionPicker, #randomQuestionBtn
 .answer-result      → 결과 버튼, 미디어 플레이어, transcript, feedback
-#infoModal          → 가이드/기록 모달
+#infoModal          → 가이드/기록/개선사항 모달
 ```
+
+### 개선사항
+
+- `개선사항` 버튼은 Disqus 댓글 모달을 연다.
+- Disqus shortname은 `practice-interview-with-a-career-teacher`다.
+- 모든 사용자가 같은 댓글 thread를 보도록 `DISQUS_IMPROVEMENTS_IDENTIFIER`와 `DISQUS_IMPROVEMENTS_URL`을 고정한다.
 
 ## 스타일/레이아웃 주의사항
 
