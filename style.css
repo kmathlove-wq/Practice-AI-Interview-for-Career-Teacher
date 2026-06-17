@@ -727,6 +727,21 @@ button:disabled {
   overflow: auto;
 }
 
+.modal-body .history-list {
+  max-height: none;
+  overflow: visible;
+}
+
+.modal-body .history-item {
+  overflow: visible;
+}
+
+.modal-body .history-item p {
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
 .improvement-form {
   display: grid;
   gap: 12px;
