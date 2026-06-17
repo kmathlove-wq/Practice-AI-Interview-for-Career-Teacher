@@ -868,9 +868,11 @@ async function saveImprovement(event) {
       .update({ content, updated_at: new Date().toISOString() })
       .eq("id", editId)
       .eq("author_id", authorId)
+      .select("id")
     : improvementStore
       .from("improvement_items")
-      .insert({ content, author_id: authorId });
+      .insert({ content, author_id: authorId })
+      .select("id");
 
   const { error } = await query;
   if (error) {
@@ -880,7 +882,7 @@ async function saveImprovement(event) {
 
   resetImprovementForm();
   setImprovementStatus(editId ? "수정했습니다." : "등록했습니다.");
-  await loadImprovements();
+  await refreshImprovementsAfterMutation();
 }
 
 async function editImprovement(id) {
@@ -965,7 +967,16 @@ async function removeImprovement(id, successMessage) {
 
   resetImprovementForm();
   setImprovementStatus(successMessage);
+  await refreshImprovementsAfterMutation();
+}
+
+async function refreshImprovementsAfterMutation() {
   await loadImprovements();
+  window.setTimeout(() => {
+    if (!infoModal.hidden && document.querySelector("#improvementList")) {
+      loadImprovements();
+    }
+  }, 350);
 }
 
 async function getImprovementById(id) {
