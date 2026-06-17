@@ -135,7 +135,7 @@ startPractice()
 ### GitHub 업로드
 
 - 사용자가 “업로드하지 마”라고 하지 않는 한 변경 후 GitHub에 커밋 + 푸시한다.
-- 푸시가 `GITHUB_TOKEN` 문제로 실패하면 `env -u GITHUB_TOKEN git push`를 사용한다.
+- 푸시는 처음부터 승인된 네트워크로 `env -u GITHUB_TOKEN git push`를 사용한다.
 - 원격에 새 커밋이 있으면 `env -u GITHUB_TOKEN git pull --rebase origin main` 후 다시 푸시한다.
 - 작업 후 `git status --short --branch`로 작업트리가 깨끗한지 확인한다.
 
