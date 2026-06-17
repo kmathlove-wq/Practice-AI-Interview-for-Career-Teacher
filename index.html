@@ -146,7 +146,12 @@
       <h2 id="confirmTitle">확인</h2>
       <p id="confirmMessage" class="confirm-message"></p>
       <label id="confirmInputLabel" class="confirm-input-label" for="confirmInput" hidden>비밀번호</label>
-      <input id="confirmInput" class="confirm-input" type="password" autocomplete="current-password" hidden>
+      <div id="confirmInputWrap" class="confirm-input-wrap" hidden>
+        <input id="confirmInput" class="confirm-input" type="password" autocomplete="current-password">
+        <button id="toggleConfirmPasswordBtn" class="password-toggle-btn" type="button" aria-label="비밀번호 보기" aria-pressed="false">
+          <span class="password-toggle-icon" aria-hidden="true"></span>
+        </button>
+      </div>
       <div id="confirmError" class="confirm-error" aria-live="polite"></div>
       <div id="confirmActions" class="confirm-actions"></div>
     </section>

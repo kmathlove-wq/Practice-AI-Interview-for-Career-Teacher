@@ -572,15 +572,23 @@ button:disabled {
   font-weight: 700;
 }
 
+.confirm-input-wrap {
+  position: relative;
+  margin-top: 8px;
+}
+
+.confirm-input-wrap[hidden] {
+  display: none;
+}
+
 .confirm-input {
   width: 100%;
   min-height: 48px;
-  margin-top: 8px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fbfdff;
   color: var(--text);
-  padding: 0 12px;
+  padding: 0 48px 0 12px;
   font: inherit;
   font-size: 16px;
 }
@@ -588,6 +596,58 @@ button:disabled {
 .confirm-input:focus {
   outline: 2px solid rgba(23, 107, 135, 0.18);
   border-color: var(--primary);
+}
+
+.password-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.password-toggle-btn:hover,
+.password-toggle-btn[aria-pressed="true"] {
+  background: #e6eef3;
+  color: var(--primary);
+}
+
+.password-toggle-icon {
+  position: absolute;
+  inset: 9px 6px;
+  border: 2px solid currentColor;
+  border-radius: 50% 50% 45% 45% / 55% 55% 45% 45%;
+  transform: rotate(45deg);
+}
+
+.password-toggle-icon::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.password-toggle-btn[aria-pressed="true"] .password-toggle-icon::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: calc(100% + 8px);
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateY(-50%) rotate(90deg);
 }
 
 .confirm-error {

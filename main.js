@@ -57,7 +57,9 @@ const confirmModal = document.querySelector("#confirmModal");
 const confirmTitle = document.querySelector("#confirmTitle");
 const confirmMessage = document.querySelector("#confirmMessage");
 const confirmInputLabel = document.querySelector("#confirmInputLabel");
+const confirmInputWrap = document.querySelector("#confirmInputWrap");
 const confirmInput = document.querySelector("#confirmInput");
+const toggleConfirmPasswordBtn = document.querySelector("#toggleConfirmPasswordBtn");
 const confirmError = document.querySelector("#confirmError");
 const confirmActions = document.querySelector("#confirmActions");
 const confirmCloseBtn = document.querySelector("#confirmCloseBtn");
@@ -101,6 +103,7 @@ function init() {
   confirmCloseBtn.addEventListener("click", cancelConfirmDialog);
   confirmActions.addEventListener("click", handleConfirmAction);
   confirmInput.addEventListener("keydown", handleConfirmInputKeydown);
+  toggleConfirmPasswordBtn.addEventListener("click", toggleConfirmPasswordVisibility);
   confirmModal.addEventListener("click", (event) => {
     if (event.target.hasAttribute("data-confirm-cancel")) {
       cancelConfirmDialog();
@@ -996,9 +999,12 @@ function openConfirmDialog(options) {
   confirmMessage.textContent = message;
   confirmInputLabel.textContent = inputLabel;
   confirmInputLabel.hidden = !inputLabel;
-  confirmInput.hidden = !inputLabel;
+  confirmInputWrap.hidden = !inputLabel;
   confirmInput.value = "";
   confirmInput.type = inputType;
+  toggleConfirmPasswordBtn.hidden = inputType !== "password";
+  toggleConfirmPasswordBtn.setAttribute("aria-pressed", "false");
+  toggleConfirmPasswordBtn.setAttribute("aria-label", "비밀번호 보기");
   confirmError.textContent = "";
   confirmActions.innerHTML = `
     <button class="confirm-secondary-btn" type="button" data-confirm-cancel>${escapeHtml(cancelText)}</button>
@@ -1055,6 +1061,14 @@ function handleConfirmInputKeydown(event) {
   }
 
   activeConfirmDialog.finish(confirmInput.value);
+}
+
+function toggleConfirmPasswordVisibility() {
+  const isVisible = confirmInput.type === "text";
+  confirmInput.type = isVisible ? "password" : "text";
+  toggleConfirmPasswordBtn.setAttribute("aria-pressed", String(!isVisible));
+  toggleConfirmPasswordBtn.setAttribute("aria-label", isVisible ? "비밀번호 보기" : "비밀번호 숨기기");
+  confirmInput.focus();
 }
 
 function cancelConfirmDialog() {
