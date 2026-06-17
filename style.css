@@ -327,6 +327,14 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
+.question-picker.is-placeholder {
+  color: #9aa8b3;
+}
+
+.question-picker option {
+  color: var(--text);
+}
+
 .reserve-btn {
   margin-top: 12px;
 }

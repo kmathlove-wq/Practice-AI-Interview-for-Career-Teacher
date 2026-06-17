@@ -182,6 +182,7 @@ function pickRandomQuestion(previousQuestion = "") {
     reservedQuestion = "";
     reservedQuestionState.textContent = "무작위";
     questionPicker.value = "";
+    updateQuestionPickerPlaceholder();
     setQuestionText(currentQuestion);
     renderAnswerGuide(currentQuestion);
     return;
@@ -638,6 +639,7 @@ function renderQuestionPicker() {
   const placeholderOption = document.createElement("option");
   placeholderOption.value = "";
   placeholderOption.textContent = "연습할 질문을 선택하세요";
+  placeholderOption.hidden = true;
   questionPicker.append(placeholderOption);
 
   questions.forEach((question, index) => {
@@ -646,6 +648,10 @@ function renderQuestionPicker() {
     option.textContent = `${index + 1}. ${question}`;
     questionPicker.append(option);
   });
+
+  const reservedIndex = questions.indexOf(reservedQuestion);
+  questionPicker.value = reservedIndex >= 0 ? String(reservedIndex) : "";
+  updateQuestionPickerPlaceholder();
 }
 
 function reserveSelectedQuestion() {
@@ -656,12 +662,18 @@ function reserveSelectedQuestion() {
 
   reservedQuestion = selectedQuestion;
   reservedQuestionState.textContent = "예약됨";
+  updateQuestionPickerPlaceholder();
 }
 
 function clearReservedQuestion() {
   reservedQuestion = "";
   reservedQuestionState.textContent = "무작위";
   questionPicker.value = "";
+  updateQuestionPickerPlaceholder();
+}
+
+function updateQuestionPickerPlaceholder() {
+  questionPicker.classList.toggle("is-placeholder", questionPicker.value === "");
 }
 
 function openInfoModal(title, content) {
