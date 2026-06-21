@@ -21,6 +21,7 @@ const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
 const IMPROVEMENT_COMPLETION_PASSWORD = "1+1=1+1=1+1=1";
+const IMPROVEMENT_PROMO_DISMISS_KEY = "practiceInterviewImprovementPromoDismissDate";
 
 const questionText = document.querySelector("#questionText");
 const questionBox = document.querySelector(".question-box");
@@ -49,6 +50,10 @@ const reservedQuestionState = document.querySelector("#reservedQuestionState");
 const openImprovementsBtn = document.querySelector("#openImprovementsBtn");
 const openGuideBtn = document.querySelector("#openGuideBtn");
 const openHistoryBtn = document.querySelector("#openHistoryBtn");
+const improvementPromoModal = document.querySelector("#improvementPromoModal");
+const promoCloseBtn = document.querySelector("#promoCloseBtn");
+const promoDismissTodayBtn = document.querySelector("#promoDismissTodayBtn");
+const promoOpenImprovementsBtn = document.querySelector("#promoOpenImprovementsBtn");
 const infoModal = document.querySelector("#infoModal");
 const modalTitle = document.querySelector("#modalTitle");
 const modalBody = document.querySelector("#modalBody");
@@ -101,6 +106,17 @@ function init() {
   openImprovementsBtn.addEventListener("click", openImprovementsModal);
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
   openHistoryBtn.addEventListener("click", () => openInfoModal("최근 답변 기록", practiceHistory.innerHTML));
+  promoCloseBtn.addEventListener("click", closeImprovementPromo);
+  promoDismissTodayBtn.addEventListener("click", dismissImprovementPromoToday);
+  promoOpenImprovementsBtn.addEventListener("click", () => {
+    closeImprovementPromo();
+    openImprovementsModal();
+  });
+  improvementPromoModal.addEventListener("click", (event) => {
+    if (event.target.hasAttribute("data-promo-close")) {
+      closeImprovementPromo();
+    }
+  });
   closeModalBtn.addEventListener("click", closeInfoModal);
   confirmCloseBtn.addEventListener("click", cancelConfirmDialog);
   confirmActions.addEventListener("click", handleConfirmAction);
@@ -125,9 +141,39 @@ function init() {
 
     if (event.key === "Escape" && !infoModal.hidden) {
       closeInfoModal();
+      return;
+    }
+
+    if (event.key === "Escape" && !improvementPromoModal.hidden) {
+      closeImprovementPromo();
     }
   });
   window.addEventListener("beforeunload", stopAllMedia);
+  showImprovementPromo();
+}
+
+function showImprovementPromo() {
+  if (localStorage.getItem(IMPROVEMENT_PROMO_DISMISS_KEY) === getLocalDateKey()) return;
+
+  improvementPromoModal.hidden = false;
+  promoOpenImprovementsBtn.focus();
+}
+
+function closeImprovementPromo() {
+  improvementPromoModal.hidden = true;
+}
+
+function dismissImprovementPromoToday() {
+  localStorage.setItem(IMPROVEMENT_PROMO_DISMISS_KEY, getLocalDateKey());
+  closeImprovementPromo();
+}
+
+function getLocalDateKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const date = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${date}`;
 }
 
 async function loadQuestionsFromTextFile() {

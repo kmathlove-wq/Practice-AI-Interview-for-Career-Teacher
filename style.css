@@ -471,6 +471,120 @@ button:disabled {
   display: none;
 }
 
+.promo-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.promo-modal[hidden] {
+  display: none;
+}
+
+.promo-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 33, 43, 0.36);
+}
+
+.promo-panel {
+  position: relative;
+  width: min(520px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.promo-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #f6f9fb;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.promo-close-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.promo-label {
+  display: inline-block;
+  margin: 0 0 10px;
+  border-radius: 999px;
+  background: #e8f4f7;
+  color: var(--primary);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.promo-panel h2 {
+  margin: 0;
+  padding-right: 42px;
+  font-size: 26px;
+  line-height: 1.3;
+}
+
+.promo-description {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.promo-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.promo-primary-btn,
+.promo-secondary-btn {
+  min-height: 44px;
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.promo-primary-btn {
+  border: 0;
+  background: var(--primary);
+  color: #fff;
+}
+
+.promo-primary-btn:hover {
+  background: var(--primary-dark);
+}
+
+.promo-secondary-btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+}
+
+.promo-secondary-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -958,6 +1072,18 @@ audio {
 
   .confirm-modal {
     padding: 12px;
+  }
+
+  .promo-modal {
+    padding: 12px;
+  }
+
+  .promo-panel {
+    padding: 24px 18px 18px;
+  }
+
+  .promo-actions {
+    grid-template-columns: 1fr;
   }
 
   .confirm-panel {
