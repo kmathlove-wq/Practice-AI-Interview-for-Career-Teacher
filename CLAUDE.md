@@ -126,7 +126,7 @@ startPractice()
 - Supabase URL은 `https://habehqibpnazvsmefgew.supabase.co`다.
 - 개선사항은 `improvement_items` 테이블에 저장한다.
 - 개선사항 모달이 열려 있는 동안 Realtime 구독과 5초 폴링으로 목록을 새로고침한다.
-- 개선사항 안내 모달의 `오늘 하루 안 보기` 날짜는 `practiceInterviewImprovementPromoDismissDate`에 저장한다.
+- 개선사항 안내 모달의 `오늘 하루 안 보기` 날짜와 안내 버전은 `practiceInterviewImprovementPromoDismissDate`에 저장한다.
 - 현재 브라우저의 `practiceInterviewImprovementAuthorId`와 항목의 `author_id`가 같을 때만 수정/삭제 버튼을 표시한다.
 - `수정 완료`는 비밀번호 `1+1=1+1=1+1=1` 확인 후 항목을 삭제한다.
 

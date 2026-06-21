@@ -22,6 +22,7 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
 const IMPROVEMENT_COMPLETION_PASSWORD = "1+1=1+1=1+1=1";
 const IMPROVEMENT_PROMO_DISMISS_KEY = "practiceInterviewImprovementPromoDismissDate";
+const IMPROVEMENT_PROMO_VERSION = "2026-06-21-v1";
 
 const questionText = document.querySelector("#questionText");
 const questionBox = document.querySelector(".question-box");
@@ -153,7 +154,7 @@ function init() {
 }
 
 function showImprovementPromo() {
-  if (localStorage.getItem(IMPROVEMENT_PROMO_DISMISS_KEY) === getLocalDateKey()) return;
+  if (getImprovementPromoDismissValue() === getImprovementPromoTodayValue()) return;
 
   improvementPromoModal.hidden = false;
   promoOpenImprovementsBtn.focus();
@@ -164,8 +165,24 @@ function closeImprovementPromo() {
 }
 
 function dismissImprovementPromoToday() {
-  localStorage.setItem(IMPROVEMENT_PROMO_DISMISS_KEY, getLocalDateKey());
+  try {
+    localStorage.setItem(IMPROVEMENT_PROMO_DISMISS_KEY, getImprovementPromoTodayValue());
+  } catch {
+    // The modal can still be closed when storage is unavailable.
+  }
   closeImprovementPromo();
+}
+
+function getImprovementPromoDismissValue() {
+  try {
+    return localStorage.getItem(IMPROVEMENT_PROMO_DISMISS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function getImprovementPromoTodayValue() {
+  return `${getLocalDateKey()}:${IMPROVEMENT_PROMO_VERSION}`;
 }
 
 function getLocalDateKey() {
