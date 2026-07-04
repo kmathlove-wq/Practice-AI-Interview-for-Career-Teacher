@@ -1162,7 +1162,7 @@ audio {
     min-height: 0;
     display: grid;
     grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.18fr) minmax(0, 1.18fr);
-    grid-template-rows: auto minmax(0, 1.24fr) minmax(150px, 0.52fr) minmax(150px, 0.5fr);
+    grid-template-rows: auto minmax(0, 1.24fr) minmax(150px, 0.48fr) minmax(190px, 0.58fr);
     grid-template-areas:
       "top top top"
       "video question question"
@@ -1227,7 +1227,17 @@ audio {
   .order-panel {
     grid-area: order;
     align-self: stretch;
-    overflow: visible;
+    overflow: auto;
+  }
+
+  .order-panel .result-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .order-panel .reservation-actions {
+    justify-content: flex-start;
   }
 
   .question-box {
@@ -1301,10 +1311,6 @@ audio {
   .result-header {
     gap: 10px;
     align-items: flex-start;
-  }
-
-  .reservation-actions {
-    gap: 6px;
   }
 
   .mini-btn {
