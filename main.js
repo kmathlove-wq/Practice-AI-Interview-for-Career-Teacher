@@ -17,6 +17,7 @@ const FALLBACK_QUESTIONS = [
 
 const PREP_SECONDS = 10;
 const ANSWER_SECONDS = 90;
+const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
 const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
@@ -195,13 +196,18 @@ function getLocalDateKey() {
 
 async function loadQuestionsFromTextFile() {
   try {
-    const response = await fetch("면접예상질문.txt", { cache: "no-store" });
-    if (!response.ok) return;
+    const loadedQuestions = [];
 
-    const text = await response.text();
-    const parsedQuestions = parseQuestions(text);
-    if (parsedQuestions.length > 0) {
-      questions = parsedQuestions;
+    for (const fileName of QUESTION_FILE_NAMES) {
+      const response = await fetch(fileName, { cache: "no-store" });
+      if (!response.ok) continue;
+
+      const text = await response.text();
+      loadedQuestions.push(...parseQuestions(text));
+    }
+
+    if (loadedQuestions.length > 0) {
+      questions = loadedQuestions;
     }
     renderQuestionPicker();
   } catch {
