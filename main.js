@@ -217,9 +217,13 @@ async function loadQuestionsFromTextFile() {
 }
 
 function parseQuestions(text) {
-  return text
-    .replace(/\r/g, "")
-    .split(/\n\s*\n/)
+  const normalizedText = text.replace(/\r/g, "");
+  const numberedQuestions = normalizedText.match(/(^|\n)\s*\d+[.)]\s*[\s\S]*?(?=\n\s*\d+[.)]\s*|$)/g);
+  const questionBlocks = numberedQuestions && numberedQuestions.length > 1
+    ? numberedQuestions.map((question) => question.replace(/^\s*\d+[.)]\s*/, ""))
+    : normalizedText.split(/\n\s*\n/);
+
+  return questionBlocks
     .map((question) => question.replace(/\s*\n\s*/g, " ").trim())
     .filter(Boolean);
 }
