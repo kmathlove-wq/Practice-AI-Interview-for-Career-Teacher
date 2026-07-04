@@ -60,6 +60,7 @@ python3 -m http.server 8000
 - 질문 파일은 빈 줄 또는 `1.`, `2.` 같은 번호 목록 기준으로 구분하고, 줄바꿈은 공백으로 정리한다.
 - 드롭다운에서 질문을 고르면 즉시 다음 질문으로 예약된다.
 - `무작위` 버튼은 예약 질문을 해제한다.
+- `질문 추가`는 개인 질문을 `practiceInterviewCustomQuestions`에 저장하고, 직접 추가한 질문만 수정/삭제할 수 있다.
 - `setQuestionText()`는 질문 길이에 따라 `long-question`, `very-long-question` 클래스를 붙여 글자 크기를 조정한다.
 
 ### 면접 흐름
@@ -91,6 +92,7 @@ startPractice()
 | 질문 건너뛰기 | 현재 녹화/타이머를 멈추고 다른 질문으로 진행 |
 | 다시 시작 | 준비시간 제외, 답변 시작 후 20초가 지나기 전까지만 같은 질문 재시작 |
 | 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인 |
+| 질문 추가 | 개인 질문을 추가하고 직접 추가한 질문을 수정/삭제 |
 | 무작위 | 예약 질문 해제 |
 | 개선사항 | Supabase 개선사항 모달 열기 |
 | 가이드 보기 | 면접 가이드 모달 열기 |
@@ -115,7 +117,7 @@ startPractice()
 .timer-area         → #timerTitle, #timerText, #progressBar
 .controls           → 시작, 건너뛰기, 다시 시작, 환경 체크
 .video-panel        → #cameraPreview, #environmentList
-.order-panel        → #questionPicker, #randomQuestionBtn
+.order-panel        → #questionPicker, #openCustomQuestionBtn, #randomQuestionBtn
 .answer-result      → 결과 버튼, 미디어 플레이어, transcript, feedback
 #infoModal          → 가이드/기록/개선사항 모달
 #confirmModal       → 개선사항 삭제/수정 완료 확인 모달

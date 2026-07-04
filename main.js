@@ -18,6 +18,7 @@ const FALLBACK_QUESTIONS = [
 const PREP_SECONDS = 10;
 const ANSWER_SECONDS = 90;
 const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
+const CUSTOM_QUESTIONS_KEY = "practiceInterviewCustomQuestions";
 const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
@@ -47,6 +48,7 @@ const feedbackBox = document.querySelector("#feedbackBox");
 const practiceHistory = document.querySelector("#practiceHistory");
 const historyCount = document.querySelector("#historyCount");
 const questionPicker = document.querySelector("#questionPicker");
+const openCustomQuestionBtn = document.querySelector("#openCustomQuestionBtn");
 const randomQuestionBtn = document.querySelector("#randomQuestionBtn");
 const reservedQuestionState = document.querySelector("#reservedQuestionState");
 const openImprovementsBtn = document.querySelector("#openImprovementsBtn");
@@ -72,7 +74,9 @@ const confirmActions = document.querySelector("#confirmActions");
 const confirmCloseBtn = document.querySelector("#confirmCloseBtn");
 const improvementStore = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) || null;
 
-let questions = [...FALLBACK_QUESTIONS];
+let baseQuestions = [...FALLBACK_QUESTIONS];
+let customQuestions = [];
+let questions = [...baseQuestions];
 let currentQuestion = "";
 let timerId = null;
 let recorder = null;
@@ -96,7 +100,8 @@ let improvementRealtimeChannel = null;
 init();
 
 function init() {
-  renderQuestionPicker();
+  loadCustomQuestions();
+  syncQuestions();
   loadQuestionsFromTextFile();
   renderPracticeHistory();
   startBtn.addEventListener("click", startPractice);
@@ -104,6 +109,7 @@ function init() {
   retryBtn.addEventListener("click", retryCurrentQuestion);
   deviceCheckBtn.addEventListener("click", checkEnvironment);
   questionPicker.addEventListener("change", reserveSelectedQuestion);
+  openCustomQuestionBtn.addEventListener("click", openCustomQuestionModal);
   randomQuestionBtn.addEventListener("click", clearReservedQuestion);
   openImprovementsBtn.addEventListener("click", openImprovementsModal);
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
@@ -207,12 +213,12 @@ async function loadQuestionsFromTextFile() {
     }
 
     if (loadedQuestions.length > 0) {
-      questions = loadedQuestions;
+      baseQuestions = loadedQuestions;
     }
-    renderQuestionPicker();
+    syncQuestions();
   } catch {
-    questions = [...FALLBACK_QUESTIONS];
-    renderQuestionPicker();
+    baseQuestions = [...FALLBACK_QUESTIONS];
+    syncQuestions();
   }
 }
 
@@ -740,6 +746,30 @@ function stopAllMedia() {
   stopActiveRecording();
 }
 
+function loadCustomQuestions() {
+  try {
+    const savedQuestions = JSON.parse(localStorage.getItem(CUSTOM_QUESTIONS_KEY) || "[]");
+    customQuestions = Array.isArray(savedQuestions)
+      ? savedQuestions.map((question) => String(question).trim()).filter(Boolean)
+      : [];
+  } catch {
+    customQuestions = [];
+  }
+}
+
+function saveCustomQuestions() {
+  localStorage.setItem(CUSTOM_QUESTIONS_KEY, JSON.stringify(customQuestions));
+}
+
+function syncQuestions() {
+  questions = [...baseQuestions, ...customQuestions];
+  if (reservedQuestion && !questions.includes(reservedQuestion)) {
+    reservedQuestion = "";
+    reservedQuestionState.textContent = "무작위";
+  }
+  renderQuestionPicker();
+}
+
 function renderQuestionPicker() {
   questionPicker.innerHTML = "";
 
@@ -781,6 +811,164 @@ function clearReservedQuestion() {
 
 function updateQuestionPickerPlaceholder() {
   questionPicker.classList.toggle("is-placeholder", questionPicker.value === "");
+}
+
+function openCustomQuestionModal() {
+  stopImprovementAutoRefresh();
+  modalTitle.textContent = "개인 질문 관리";
+  modalBody.innerHTML = `
+    <form id="customQuestionForm" class="custom-question-form">
+      <input id="customQuestionEditIndex" type="hidden">
+      <label class="custom-question-label" for="customQuestionInput">질문 입력</label>
+      <textarea id="customQuestionInput" class="custom-question-input" rows="4" maxlength="400" placeholder="연습하고 싶은 질문을 입력하세요." required></textarea>
+      <div class="custom-question-form-actions">
+        <p id="customQuestionStatus" class="custom-question-status" aria-live="polite"></p>
+        <div class="custom-question-buttons">
+          <button id="cancelCustomQuestionEditBtn" class="mini-btn" type="button" hidden>수정 취소</button>
+          <button id="saveCustomQuestionBtn" class="primary-btn compact-btn" type="submit">추가</button>
+        </div>
+      </div>
+    </form>
+    <div id="customQuestionList" class="custom-question-list"></div>
+  `;
+  infoModal.hidden = false;
+  closeModalBtn.focus();
+  setupCustomQuestionForm();
+  renderCustomQuestionList();
+}
+
+function setupCustomQuestionForm() {
+  const form = document.querySelector("#customQuestionForm");
+  const cancelEditBtn = document.querySelector("#cancelCustomQuestionEditBtn");
+  if (!form || !cancelEditBtn) return;
+
+  form.addEventListener("submit", saveCustomQuestion);
+  cancelEditBtn.addEventListener("click", resetCustomQuestionForm);
+}
+
+function saveCustomQuestion(event) {
+  event.preventDefault();
+
+  const input = document.querySelector("#customQuestionInput");
+  const editIndexInput = document.querySelector("#customQuestionEditIndex");
+  const status = document.querySelector("#customQuestionStatus");
+  if (!input || !editIndexInput || !status) return;
+
+  const question = input.value.replace(/\s+/g, " ").trim();
+  const editIndex = editIndexInput.value === "" ? -1 : Number(editIndexInput.value);
+  if (!question) {
+    status.textContent = "질문을 입력해 주세요.";
+    status.classList.add("is-error");
+    input.focus();
+    return;
+  }
+
+  const duplicateInBase = baseQuestions.includes(question);
+  const duplicateInCustom = customQuestions.some((savedQuestion, index) => savedQuestion === question && index !== editIndex);
+  if (duplicateInBase || duplicateInCustom) {
+    status.textContent = "이미 있는 질문입니다.";
+    status.classList.add("is-error");
+    input.focus();
+    return;
+  }
+
+  if (editIndex >= 0 && customQuestions[editIndex]) {
+    const previousQuestion = customQuestions[editIndex];
+    customQuestions[editIndex] = question;
+    if (reservedQuestion === previousQuestion) {
+      reservedQuestion = question;
+      reservedQuestionState.textContent = "예약됨";
+    }
+    status.textContent = "질문을 수정했습니다.";
+  } else {
+    customQuestions.unshift(question);
+    status.textContent = "질문을 추가했습니다.";
+  }
+
+  status.classList.remove("is-error");
+  saveCustomQuestions();
+  syncQuestions();
+  resetCustomQuestionForm(status.textContent);
+  renderCustomQuestionList();
+}
+
+function resetCustomQuestionForm(message = "") {
+  const input = document.querySelector("#customQuestionInput");
+  const editIndexInput = document.querySelector("#customQuestionEditIndex");
+  const status = document.querySelector("#customQuestionStatus");
+  const saveBtn = document.querySelector("#saveCustomQuestionBtn");
+  const cancelEditBtn = document.querySelector("#cancelCustomQuestionEditBtn");
+  if (!input || !editIndexInput || !status || !saveBtn || !cancelEditBtn) return;
+
+  input.value = "";
+  editIndexInput.value = "";
+  saveBtn.textContent = "추가";
+  cancelEditBtn.hidden = true;
+  status.textContent = message;
+  status.classList.remove("is-error");
+}
+
+function renderCustomQuestionList() {
+  const list = document.querySelector("#customQuestionList");
+  if (!list) return;
+
+  if (customQuestions.length === 0) {
+    list.innerHTML = `<p class="custom-question-empty">아직 직접 추가한 질문이 없습니다.</p>`;
+    return;
+  }
+
+  list.innerHTML = customQuestions
+    .map((question, index) => `
+      <article class="custom-question-item">
+        <p>${escapeHtml(question)}</p>
+        <div class="custom-question-item-actions">
+          <button class="mini-btn" type="button" data-edit-custom-question="${index}">수정</button>
+          <button class="delete-record-btn" type="button" data-delete-custom-question="${index}">삭제</button>
+        </div>
+      </article>
+    `)
+    .join("");
+}
+
+function editCustomQuestion(index) {
+  const question = customQuestions[index];
+  const input = document.querySelector("#customQuestionInput");
+  const editIndexInput = document.querySelector("#customQuestionEditIndex");
+  const status = document.querySelector("#customQuestionStatus");
+  const saveBtn = document.querySelector("#saveCustomQuestionBtn");
+  const cancelEditBtn = document.querySelector("#cancelCustomQuestionEditBtn");
+  if (!question || !input || !editIndexInput || !status || !saveBtn || !cancelEditBtn) return;
+
+  input.value = question;
+  editIndexInput.value = String(index);
+  saveBtn.textContent = "수정 저장";
+  cancelEditBtn.hidden = false;
+  status.textContent = "수정할 내용을 입력한 뒤 저장하세요.";
+  status.classList.remove("is-error");
+  input.focus();
+}
+
+async function deleteCustomQuestion(index) {
+  const question = customQuestions[index];
+  if (!question) return;
+
+  const confirmed = await openConfirmDialog({
+    title: "질문을 삭제할까요?",
+    message: `"${question}" 질문이 내 질문 목록에서 사라집니다.`,
+    confirmText: "삭제",
+    danger: true
+  });
+  if (!confirmed) return;
+
+  customQuestions.splice(index, 1);
+  if (reservedQuestion === question) {
+    reservedQuestion = "";
+    reservedQuestionState.textContent = "무작위";
+  }
+  saveCustomQuestions();
+  syncQuestions();
+  resetCustomQuestionForm("질문을 삭제했습니다.");
+  renderCustomQuestionList();
 }
 
 function openInfoModal(title, content) {
@@ -1207,6 +1395,18 @@ function closeInfoModal() {
 }
 
 async function handleModalClick(event) {
+  const editCustomQuestionButton = event.target.closest("[data-edit-custom-question]");
+  if (editCustomQuestionButton) {
+    editCustomQuestion(Number(editCustomQuestionButton.dataset.editCustomQuestion));
+    return;
+  }
+
+  const deleteCustomQuestionButton = event.target.closest("[data-delete-custom-question]");
+  if (deleteCustomQuestionButton) {
+    await deleteCustomQuestion(Number(deleteCustomQuestionButton.dataset.deleteCustomQuestion));
+    return;
+  }
+
   const deleteButton = event.target.closest("[data-delete-record]");
   if (deleteButton) {
     deletePracticeRecord(Number(deleteButton.dataset.deleteRecord));

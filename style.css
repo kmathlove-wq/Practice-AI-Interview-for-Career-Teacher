@@ -275,6 +275,8 @@ button:disabled {
 .reservation-actions {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
   align-items: center;
 }
@@ -856,19 +858,22 @@ button:disabled {
   word-break: keep-all;
 }
 
-.improvement-form {
+.improvement-form,
+.custom-question-form {
   display: grid;
   gap: 12px;
   padding-top: 16px;
 }
 
-.improvement-label {
+.improvement-label,
+.custom-question-label {
   color: var(--text);
   font-size: 15px;
   font-weight: 800;
 }
 
-.improvement-input {
+.improvement-input,
+.custom-question-input {
   width: 100%;
   min-height: 120px;
   resize: vertical;
@@ -881,12 +886,14 @@ button:disabled {
   line-height: 1.6;
 }
 
-.improvement-input:focus {
+.improvement-input:focus,
+.custom-question-input:focus {
   outline: 2px solid rgba(23, 107, 135, 0.22);
   border-color: var(--primary);
 }
 
 .improvement-form-actions,
+.custom-question-form-actions,
 .improvement-item-header,
 .improvement-item-actions {
   display: flex;
@@ -895,19 +902,22 @@ button:disabled {
   gap: 12px;
 }
 
-.improvement-status {
+.improvement-status,
+.custom-question-status {
   min-height: 22px;
   margin: 0;
   color: var(--muted);
   font-size: 14px;
 }
 
-.improvement-status.is-error {
+.improvement-status.is-error,
+.custom-question-status.is-error {
   color: var(--danger);
   font-weight: 700;
 }
 
 .improvement-buttons,
+.custom-question-buttons,
 .improvement-item-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -918,25 +928,30 @@ button:disabled {
   padding: 0 16px;
 }
 
-.improvement-list {
+.improvement-list,
+.custom-question-list {
   display: grid;
   gap: 12px;
   margin-top: 18px;
 }
 
 .improvement-empty,
-.improvement-item {
+.improvement-item,
+.custom-question-empty,
+.custom-question-item {
   border-radius: 8px;
   background: #f6f9fb;
   padding: 16px;
 }
 
-.improvement-empty {
+.improvement-empty,
+.custom-question-empty {
   margin: 0;
   color: var(--muted);
 }
 
-.improvement-item {
+.improvement-item,
+.custom-question-item {
   border: 1px solid var(--line);
 }
 
@@ -959,6 +974,20 @@ button:disabled {
   color: var(--text);
   line-height: 1.65;
   white-space: pre-wrap;
+}
+
+.custom-question-item p {
+  margin: 0 0 14px;
+  color: var(--text);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.custom-question-item-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .complete-improvement-btn {
@@ -1036,22 +1065,30 @@ audio {
   }
 
   .improvement-form-actions,
+  .custom-question-form-actions,
   .improvement-item-header,
-  .improvement-item-actions {
+  .improvement-item-actions,
+  .custom-question-item-actions {
     align-items: stretch;
     flex-direction: column;
   }
 
   .improvement-buttons,
-  .improvement-item-actions {
+  .custom-question-buttons,
+  .improvement-item-actions,
+  .custom-question-item-actions {
     justify-content: stretch;
   }
 
   .improvement-buttons .mini-btn,
   .improvement-buttons .primary-btn,
+  .custom-question-buttons .mini-btn,
+  .custom-question-buttons .primary-btn,
   .improvement-item-actions .mini-btn,
   .improvement-item-actions .delete-record-btn,
-  .improvement-item-actions .complete-improvement-btn {
+  .improvement-item-actions .complete-improvement-btn,
+  .custom-question-item-actions .mini-btn,
+  .custom-question-item-actions .delete-record-btn {
     width: 100%;
   }
 
