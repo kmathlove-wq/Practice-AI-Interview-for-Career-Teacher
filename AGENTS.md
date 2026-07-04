@@ -60,7 +60,8 @@ python3 -m http.server 8000
 - 질문 파일은 빈 줄 또는 `1.`, `2.` 같은 번호 목록 기준으로 구분하고, 줄바꿈은 공백으로 정리한다.
 - 드롭다운에서 질문을 고르면 즉시 다음 질문으로 예약된다.
 - `무작위` 버튼은 예약 질문을 해제한다.
-- `질문 추가`는 개인 질문을 `practiceInterviewCustomQuestions`에 저장하고, 직접 추가한 질문만 수정/삭제할 수 있다.
+- `질문 추가`는 질문 관리 모달을 열고, 개인 질문은 `practiceInterviewCustomQuestions`에 저장한다.
+- 기본 질문의 수정/삭제도 원본 파일을 바꾸지 않고 `practiceInterviewBaseQuestionEdits`, `practiceInterviewDeletedBaseQuestions`에 개인 설정으로 저장한다.
 - `setQuestionText()`는 질문 길이에 따라 `long-question`, `very-long-question` 클래스를 붙여 글자 크기를 조정한다.
 
 ### 면접 흐름
@@ -92,7 +93,7 @@ startPractice()
 | 질문 건너뛰기 | 현재 녹화/타이머를 멈추고 다른 질문으로 진행 |
 | 다시 시작 | 준비시간 제외, 답변 시작 후 20초가 지나기 전까지만 같은 질문 재시작 |
 | 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인 |
-| 질문 추가 | 개인 질문을 추가하고 직접 추가한 질문을 수정/삭제 |
+| 질문 추가 | 기본/개인 질문을 개인 설정으로 추가·수정·삭제 |
 | 무작위 | 예약 질문 해제 |
 | 개선사항 | Supabase 개선사항 모달 열기 |
 | 가이드 보기 | 면접 가이드 모달 열기 |
