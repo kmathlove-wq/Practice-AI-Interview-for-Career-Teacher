@@ -62,7 +62,7 @@ python3 -m http.server 8000
 - `무작위` 버튼은 예약 질문을 해제한다.
 - `질문 추가`는 질문 관리 모달을 열고, 개인 질문은 `practiceInterviewCustomQuestions`에 저장한다.
 - 기본 질문의 수정/삭제도 원본 파일을 바꾸지 않고 `practiceInterviewBaseQuestionEdits`, `practiceInterviewDeletedBaseQuestions`에 개인 설정으로 저장한다.
-- 질문은 최소 1개 이상 남겨야 하며, 삭제한 기본/개인 질문은 원하는 항목만 선택해 복원할 수 있다.
+- 질문은 최소 1개 이상 남겨야 하며, 삭제한 기본/개인 질문은 복원 목록에서 개별 또는 다중 선택으로 복원/완전 삭제할 수 있다.
 - `setQuestionText()`는 질문 길이에 따라 `long-question`, `very-long-question` 클래스를 붙여 글자 크기를 조정한다.
 
 ### 면접 흐름

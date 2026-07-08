@@ -985,6 +985,13 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.custom-question-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .custom-question-section-header h3 {
   margin: 0;
   font-size: 17px;
@@ -1023,11 +1030,55 @@ button:disabled {
 }
 
 .custom-question-item.is-deleted {
+  position: relative;
   background: #f8fafc;
+  padding-left: 52px;
 }
 
 .custom-question-item.is-deleted p {
   color: var(--muted);
+}
+
+.restore-select {
+  position: absolute;
+  top: 18px;
+  left: 16px;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.restore-select-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.restore-select-box {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.restore-select-input:checked + .restore-select-box {
+  border-color: var(--primary);
+  background:
+    radial-gradient(circle at center, var(--primary) 0 42%, transparent 46%);
+}
+
+.restore-select-input:focus-visible + .restore-select-box {
+  outline: 2px solid rgba(23, 107, 135, 0.24);
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .improvement-item-header {
