@@ -19,6 +19,7 @@ const PREP_SECONDS = 10;
 const ANSWER_SECONDS = 90;
 const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
 const CUSTOM_QUESTIONS_KEY = "practiceInterviewCustomQuestions";
+const DELETED_CUSTOM_QUESTIONS_KEY = "practiceInterviewDeletedCustomQuestions";
 const BASE_QUESTION_EDITS_KEY = "practiceInterviewBaseQuestionEdits";
 const DELETED_BASE_QUESTIONS_KEY = "practiceInterviewDeletedBaseQuestions";
 const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
@@ -81,6 +82,7 @@ let baseQuestions = [...FALLBACK_QUESTIONS];
 let baseQuestionEdits = {};
 let deletedBaseQuestions = [];
 let customQuestions = [];
+let deletedCustomQuestions = [];
 let questions = [...baseQuestions];
 let currentQuestion = "";
 let timerId = null;
@@ -764,6 +766,15 @@ function loadQuestionPersonalizations() {
   }
 
   try {
+    const savedDeletedCustomQuestions = JSON.parse(localStorage.getItem(DELETED_CUSTOM_QUESTIONS_KEY) || "[]");
+    deletedCustomQuestions = Array.isArray(savedDeletedCustomQuestions)
+      ? savedDeletedCustomQuestions.map((question) => String(question).trim()).filter(Boolean)
+      : [];
+  } catch {
+    deletedCustomQuestions = [];
+  }
+
+  try {
     const savedEdits = JSON.parse(localStorage.getItem(BASE_QUESTION_EDITS_KEY) || "{}");
     baseQuestionEdits = savedEdits && typeof savedEdits === "object" && !Array.isArray(savedEdits)
       ? Object.fromEntries(
@@ -788,6 +799,7 @@ function loadQuestionPersonalizations() {
 
 function saveCustomQuestions() {
   localStorage.setItem(CUSTOM_QUESTIONS_KEY, JSON.stringify(customQuestions));
+  localStorage.setItem(DELETED_CUSTOM_QUESTIONS_KEY, JSON.stringify(deletedCustomQuestions));
 }
 
 function saveBaseQuestionPersonalizations() {
@@ -798,9 +810,15 @@ function saveBaseQuestionPersonalizations() {
 function syncQuestions() {
   questions = [...getVisibleBaseQuestions(), ...customQuestions];
   if (questions.length === 0) {
-    const questionToRestore = deletedBaseQuestions.pop();
+    const customQuestionToRestore = deletedCustomQuestions.shift();
+    const questionToRestore = customQuestionToRestore || deletedBaseQuestions.pop();
     if (questionToRestore) {
-      saveBaseQuestionPersonalizations();
+      if (customQuestionToRestore) {
+        customQuestions.unshift(customQuestionToRestore);
+        saveCustomQuestions();
+      } else {
+        saveBaseQuestionPersonalizations();
+      }
       questions = [...getVisibleBaseQuestions(), ...customQuestions];
     }
   }
@@ -993,8 +1011,16 @@ function renderCustomQuestionList() {
     .filter((question) => baseQuestions.includes(question))
     .map((question) => ({
       originalQuestion: question,
-      question: baseQuestionEdits[question] || question
+      question: baseQuestionEdits[question] || question,
+      type: "base"
     }));
+  const deletedCustomQuestionItems = deletedCustomQuestions
+    .map((question, index) => ({
+      index,
+      question,
+      type: "custom"
+    }));
+  const deletedQuestionItems = [...deletedCustomQuestionItems, ...deletedBaseQuestionItems];
   const baseQuestionsHtml = visibleBaseQuestionItems.length
     ? visibleBaseQuestionItems
       .map((item) => `
@@ -1012,21 +1038,22 @@ function renderCustomQuestionList() {
       `)
       .join("")
     : `<p class="custom-question-empty">표시 중인 기본 질문이 없습니다.</p>`;
-  const deletedBaseQuestionsHtml = deletedBaseQuestionItems.length
-    ? deletedBaseQuestionItems
+  const deletedQuestionsHtml = deletedQuestionItems.length
+    ? deletedQuestionItems
       .map((item) => `
         <article class="custom-question-item is-deleted">
           <div class="custom-question-item-header">
+            <span class="custom-question-badge${item.type === "custom" ? " is-custom" : ""}">${item.type === "custom" ? "개인" : "기본"}</span>
             <span class="custom-question-badge is-deleted">삭제됨</span>
           </div>
           <p>${escapeHtml(item.question)}</p>
           <div class="custom-question-item-actions">
-            <button class="mini-btn" type="button" data-restore-base-question="${escapeHtml(item.originalQuestion)}">복원</button>
+            <button class="mini-btn" type="button" ${item.type === "custom" ? `data-restore-custom-question="${item.index}"` : `data-restore-base-question="${escapeHtml(item.originalQuestion)}"`}>복원</button>
           </div>
         </article>
       `)
       .join("")
-    : `<p class="custom-question-empty">삭제한 기본 질문이 없습니다.</p>`;
+    : `<p class="custom-question-empty">삭제한 질문이 없습니다.</p>`;
   const customQuestionsHtml = customQuestions.length
     ? customQuestions
       .map((question, index) => `
@@ -1043,16 +1070,16 @@ function renderCustomQuestionList() {
     `)
       .join("")
     : `<p class="custom-question-empty">아직 직접 추가한 질문이 없습니다.</p>`;
-  const restoreButtonHtml = deletedBaseQuestionItems.length > 0
-    ? `<button class="mini-btn custom-question-restore-btn" type="button" data-toggle-base-restore-list>${isBaseRestoreListOpen ? "복원 목록 닫기" : `삭제한 기본 질문 복원 (${deletedBaseQuestionItems.length})`}</button>`
+  const restoreButtonHtml = deletedQuestionItems.length > 0
+    ? `<button class="mini-btn custom-question-restore-btn" type="button" data-toggle-base-restore-list>${isBaseRestoreListOpen ? "복원 목록 닫기" : `삭제한 질문 복원 (${deletedQuestionItems.length})`}</button>`
     : "";
   const deletedBaseQuestionsSectionHtml = isBaseRestoreListOpen
     ? `
       <section class="custom-question-section">
         <div class="custom-question-section-header">
-          <h3>복원할 기본 질문</h3>
+          <h3>복원할 질문</h3>
         </div>
-        ${deletedBaseQuestionsHtml}
+        ${deletedQuestionsHtml}
       </section>
     `
     : "";
@@ -1136,7 +1163,10 @@ async function deleteQuestion(type, key) {
     delete baseQuestionEdits[key];
     saveBaseQuestionPersonalizations();
   } else {
-    customQuestions.splice(key, 1);
+    const deletedQuestion = customQuestions.splice(key, 1)[0];
+    if (deletedQuestion && !deletedCustomQuestions.includes(deletedQuestion)) {
+      deletedCustomQuestions.unshift(deletedQuestion);
+    }
     saveCustomQuestions();
   }
 
@@ -1155,12 +1185,29 @@ function getVisibleQuestionCount() {
 
 function restoreBaseQuestion(question) {
   deletedBaseQuestions = deletedBaseQuestions.filter((deletedQuestion) => deletedQuestion !== question);
-  if (deletedBaseQuestions.length === 0) {
+  if (deletedBaseQuestions.length === 0 && deletedCustomQuestions.length === 0) {
     isBaseRestoreListOpen = false;
   }
   saveBaseQuestionPersonalizations();
   syncQuestions();
   resetCustomQuestionForm("기본 질문을 복원했습니다.");
+  renderCustomQuestionList();
+}
+
+function restoreCustomQuestion(index) {
+  const question = deletedCustomQuestions[index];
+  if (!question) return;
+
+  deletedCustomQuestions.splice(index, 1);
+  if (!hasDuplicateQuestion(question)) {
+    customQuestions.unshift(question);
+  }
+  if (deletedBaseQuestions.length === 0 && deletedCustomQuestions.length === 0) {
+    isBaseRestoreListOpen = false;
+  }
+  saveCustomQuestions();
+  syncQuestions();
+  resetCustomQuestionForm("개인 질문을 복원했습니다.");
   renderCustomQuestionList();
 }
 
@@ -1695,6 +1742,12 @@ async function handleModalClick(event) {
   const restoreBaseQuestionButton = event.target.closest("[data-restore-base-question]");
   if (restoreBaseQuestionButton) {
     restoreBaseQuestion(restoreBaseQuestionButton.dataset.restoreBaseQuestion);
+    return;
+  }
+
+  const restoreCustomQuestionButton = event.target.closest("[data-restore-custom-question]");
+  if (restoreCustomQuestionButton) {
+    restoreCustomQuestion(Number(restoreCustomQuestionButton.dataset.restoreCustomQuestion));
     return;
   }
 
