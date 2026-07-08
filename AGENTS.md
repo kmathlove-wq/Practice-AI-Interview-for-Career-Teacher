@@ -130,6 +130,7 @@ startPractice()
 - `개선사항` 버튼은 직접 만든 Supabase 개선사항 모달을 연다.
 - Supabase URL은 `https://habehqibpnazvsmefgew.supabase.co`다.
 - 개선사항은 `improvement_items` 테이블에 저장한다.
+- Supabase 연결 실패 시 개선사항은 `practiceInterviewLocalImprovements`에 개인 임시 저장으로 fallback한다.
 - 개선사항 모달이 열려 있는 동안 Realtime 구독과 5초 폴링으로 목록을 새로고침한다.
 - 개선사항 안내 모달의 `오늘 하루 안 보기` 날짜와 안내 버전은 `practiceInterviewImprovementPromoDismissDate`에 저장한다.
 - 현재 브라우저의 `practiceInterviewImprovementAuthorId`와 항목의 `author_id`가 같을 때만 수정/삭제 버튼을 표시한다.

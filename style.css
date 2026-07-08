@@ -950,6 +950,18 @@ button:disabled {
   color: var(--muted);
 }
 
+.improvement-notice {
+  margin: 0;
+  border: 1px solid rgba(23, 107, 135, 0.22);
+  border-radius: 8px;
+  background: #eef9fb;
+  color: var(--primary);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .improvement-item,
 .custom-question-item {
   border: 1px solid var(--line);
