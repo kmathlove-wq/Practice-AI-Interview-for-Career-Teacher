@@ -1024,7 +1024,12 @@ function renderCustomQuestionList() {
   const baseQuestionsHtml = visibleBaseQuestionItems.length
     ? visibleBaseQuestionItems
       .map((item) => `
-        <article class="custom-question-item">
+        <article class="custom-question-item is-selectable">
+          <label class="question-select">
+            <input class="question-select-input" type="checkbox" data-active-select-base="${escapeHtml(item.originalQuestion)}">
+            <span class="question-select-box" aria-hidden="true"></span>
+            <span class="sr-only">기본 질문 선택</span>
+          </label>
           <div class="custom-question-item-header">
             <span class="custom-question-badge">기본</span>
             ${item.isEdited ? `<span class="custom-question-badge is-edited">수정됨</span>` : ""}
@@ -1063,7 +1068,12 @@ function renderCustomQuestionList() {
   const customQuestionsHtml = customQuestions.length
     ? customQuestions
       .map((question, index) => `
-      <article class="custom-question-item">
+      <article class="custom-question-item is-selectable">
+        <label class="question-select">
+          <input class="question-select-input" type="checkbox" data-active-select-custom="${index}">
+          <span class="question-select-box" aria-hidden="true"></span>
+          <span class="sr-only">개인 질문 선택</span>
+        </label>
         <div class="custom-question-item-header">
           <span class="custom-question-badge is-custom">개인</span>
         </div>
@@ -1099,13 +1109,17 @@ function renderCustomQuestionList() {
     <section class="custom-question-section">
       <div class="custom-question-section-header">
         <h3>개인 질문</h3>
+        ${customQuestions.length ? `<div class="custom-question-bulk-actions"><button class="delete-record-btn" type="button" data-delete-selected-active-questions>선택 삭제</button></div>` : ""}
       </div>
       ${customQuestionsHtml}
     </section>
     <section class="custom-question-section">
       <div class="custom-question-section-header">
         <h3>기본 질문</h3>
-        ${restoreButtonHtml}
+        <div class="custom-question-bulk-actions">
+          ${visibleBaseQuestionItems.length ? `<button class="delete-record-btn" type="button" data-delete-selected-active-questions>선택 삭제</button>` : ""}
+          ${restoreButtonHtml}
+        </div>
       </div>
       ${baseQuestionsHtml}
     </section>
@@ -1191,6 +1205,77 @@ async function deleteQuestion(type, key) {
 
 function getVisibleQuestionCount() {
   return getVisibleBaseQuestions().length + customQuestions.length;
+}
+
+function getSelectedActiveQuestionKeys() {
+  const selectedBaseQuestions = [...document.querySelectorAll("[data-active-select-base]:checked")]
+    .map((input) => input.dataset.activeSelectBase)
+    .filter(Boolean);
+  const selectedCustomQuestions = [...document.querySelectorAll("[data-active-select-custom]:checked")]
+    .map((input) => customQuestions[Number(input.dataset.activeSelectCustom)])
+    .filter(Boolean);
+
+  return {
+    base: [...new Set(selectedBaseQuestions)],
+    custom: [...new Set(selectedCustomQuestions)]
+  };
+}
+
+async function deleteSelectedActiveQuestions() {
+  const selectedQuestions = getSelectedActiveQuestionKeys();
+  const selectedCount = selectedQuestions.base.length + selectedQuestions.custom.length;
+  if (selectedCount === 0) {
+    resetCustomQuestionForm("삭제할 질문을 선택해 주세요.");
+    const status = document.querySelector("#customQuestionStatus");
+    status?.classList.add("is-error");
+    return;
+  }
+
+  if (getVisibleQuestionCount() - selectedCount < 1) {
+    resetCustomQuestionForm("질문은 최소 1개 이상 남아 있어야 합니다.");
+    const status = document.querySelector("#customQuestionStatus");
+    status?.classList.add("is-error");
+    return;
+  }
+
+  const confirmed = await openConfirmDialog({
+    title: "선택한 질문을 삭제할까요?",
+    message: `${selectedCount}개 질문이 내 질문 목록에서 사라지고 복원 목록으로 이동합니다.`,
+    confirmText: "삭제",
+    cancelText: "취소",
+    danger: true
+  });
+  if (!confirmed) return;
+
+  const selectedVisibleQuestions = [
+    ...selectedQuestions.base.map((question) => baseQuestionEdits[question] || question),
+    ...selectedQuestions.custom
+  ];
+
+  selectedQuestions.base.forEach((question) => {
+    if (!deletedBaseQuestions.includes(question)) {
+      deletedBaseQuestions.push(question);
+    }
+    delete baseQuestionEdits[question];
+  });
+
+  selectedQuestions.custom.forEach((question) => {
+    if (!deletedCustomQuestions.includes(question)) {
+      deletedCustomQuestions.unshift(question);
+    }
+  });
+  customQuestions = customQuestions.filter((question) => !selectedQuestions.custom.includes(question));
+
+  if (selectedVisibleQuestions.includes(reservedQuestion)) {
+    reservedQuestion = "";
+    reservedQuestionState.textContent = "무작위";
+  }
+
+  saveBaseQuestionPersonalizations();
+  saveCustomQuestions();
+  syncQuestions();
+  resetCustomQuestionForm(`${selectedCount}개 질문을 삭제했습니다.`);
+  renderCustomQuestionList();
 }
 
 function restoreBaseQuestion(question) {
@@ -1836,6 +1921,12 @@ async function handleModalClick(event) {
   const deleteSelectedQuestionsButton = event.target.closest("[data-delete-selected-questions]");
   if (deleteSelectedQuestionsButton) {
     await permanentlyDeleteSelectedDeletedQuestions();
+    return;
+  }
+
+  const deleteSelectedActiveQuestionsButton = event.target.closest("[data-delete-selected-active-questions]");
+  if (deleteSelectedActiveQuestionsButton) {
+    await deleteSelectedActiveQuestions();
     return;
   }
 

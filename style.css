@@ -1032,42 +1032,53 @@ button:disabled {
 .custom-question-item.is-deleted {
   position: relative;
   background: #f8fafc;
-  padding-left: 52px;
+  padding-left: 68px;
+}
+
+.custom-question-item.is-selectable {
+  position: relative;
+  padding-left: 68px;
 }
 
 .custom-question-item.is-deleted p {
   color: var(--muted);
 }
 
-.restore-select {
+.restore-select,
+.question-select {
   position: absolute;
-  top: 18px;
-  left: 16px;
+  top: 16px;
+  left: 18px;
   display: inline-flex;
   cursor: pointer;
 }
 
-.restore-select-input {
+.restore-select-input,
+.question-select-input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
 
-.restore-select-box {
-  width: 22px;
-  height: 22px;
+.restore-select-box,
+.question-select-box {
+  width: 30px;
+  height: 30px;
   border: 2px solid var(--line);
   border-radius: 999px;
   background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
-.restore-select-input:checked + .restore-select-box {
+.restore-select-input:checked + .restore-select-box,
+.question-select-input:checked + .question-select-box {
   border-color: var(--primary);
   background:
-    radial-gradient(circle at center, var(--primary) 0 42%, transparent 46%);
+    radial-gradient(circle at center, var(--primary) 0 38%, transparent 42%);
 }
 
-.restore-select-input:focus-visible + .restore-select-box {
+.restore-select-input:focus-visible + .restore-select-box,
+.question-select-input:focus-visible + .question-select-box {
   outline: 2px solid rgba(23, 107, 135, 0.24);
   outline-offset: 3px;
 }
