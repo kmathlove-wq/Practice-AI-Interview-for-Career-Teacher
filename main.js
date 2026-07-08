@@ -102,6 +102,7 @@ let activeConfirmDialog = null;
 let improvementRefreshTimerId = null;
 let improvementRealtimeChannel = null;
 let improvementStorageMode = "remote";
+let isBaseRestoreListOpen = false;
 
 init();
 
@@ -861,6 +862,7 @@ function updateQuestionPickerPlaceholder() {
 
 function openCustomQuestionModal() {
   stopImprovementAutoRefresh();
+  isBaseRestoreListOpen = false;
   modalTitle.textContent = "질문 관리";
   modalBody.innerHTML = `
     <form id="customQuestionForm" class="custom-question-form">
@@ -1041,26 +1043,35 @@ function renderCustomQuestionList() {
     `)
       .join("")
     : `<p class="custom-question-empty">아직 직접 추가한 질문이 없습니다.</p>`;
+  const restoreButtonHtml = deletedBaseQuestionItems.length > 0
+    ? `<button class="mini-btn custom-question-restore-btn" type="button" data-toggle-base-restore-list>${isBaseRestoreListOpen ? "복원 목록 닫기" : `삭제한 기본 질문 복원 (${deletedBaseQuestionItems.length})`}</button>`
+    : "";
+  const deletedBaseQuestionsSectionHtml = isBaseRestoreListOpen
+    ? `
+      <section class="custom-question-section">
+        <div class="custom-question-section-header">
+          <h3>복원할 기본 질문</h3>
+        </div>
+        ${deletedBaseQuestionsHtml}
+      </section>
+    `
+    : "";
 
   list.innerHTML = `
-    <section class="custom-question-section">
-      <div class="custom-question-section-header">
-        <h3>기본 질문</h3>
-      </div>
-      ${baseQuestionsHtml}
-    </section>
-    <section class="custom-question-section">
-      <div class="custom-question-section-header">
-        <h3>삭제한 기본 질문</h3>
-      </div>
-      ${deletedBaseQuestionsHtml}
-    </section>
     <section class="custom-question-section">
       <div class="custom-question-section-header">
         <h3>개인 질문</h3>
       </div>
       ${customQuestionsHtml}
     </section>
+    <section class="custom-question-section">
+      <div class="custom-question-section-header">
+        <h3>기본 질문</h3>
+        ${restoreButtonHtml}
+      </div>
+      ${baseQuestionsHtml}
+    </section>
+    ${deletedBaseQuestionsSectionHtml}
   `;
 }
 
@@ -1144,6 +1155,9 @@ function getVisibleQuestionCount() {
 
 function restoreBaseQuestion(question) {
   deletedBaseQuestions = deletedBaseQuestions.filter((deletedQuestion) => deletedQuestion !== question);
+  if (deletedBaseQuestions.length === 0) {
+    isBaseRestoreListOpen = false;
+  }
   saveBaseQuestionPersonalizations();
   syncQuestions();
   resetCustomQuestionForm("기본 질문을 복원했습니다.");
@@ -1647,6 +1661,13 @@ function closeInfoModal() {
 }
 
 async function handleModalClick(event) {
+  const toggleBaseRestoreListButton = event.target.closest("[data-toggle-base-restore-list]");
+  if (toggleBaseRestoreListButton) {
+    isBaseRestoreListOpen = !isBaseRestoreListOpen;
+    renderCustomQuestionList();
+    return;
+  }
+
   const editBaseQuestionButton = event.target.closest("[data-edit-base-question]");
   if (editBaseQuestionButton) {
     editQuestion("base", editBaseQuestionButton.dataset.editBaseQuestion);

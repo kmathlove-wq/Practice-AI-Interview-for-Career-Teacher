@@ -990,6 +990,10 @@ button:disabled {
   font-size: 17px;
 }
 
+.custom-question-restore-btn {
+  margin-left: auto;
+}
+
 .custom-question-badge {
   display: inline-flex;
   min-height: 26px;
