@@ -1013,6 +1013,19 @@ button:disabled {
   color: #128c7e;
 }
 
+.custom-question-badge.is-deleted {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #64748b;
+}
+
+.custom-question-item.is-deleted {
+  background: #f8fafc;
+}
+
+.custom-question-item.is-deleted p {
+  color: var(--muted);
+}
+
 .improvement-item-header {
   align-items: baseline;
 }

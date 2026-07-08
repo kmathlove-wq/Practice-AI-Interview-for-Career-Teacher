@@ -796,6 +796,13 @@ function saveBaseQuestionPersonalizations() {
 
 function syncQuestions() {
   questions = [...getVisibleBaseQuestions(), ...customQuestions];
+  if (questions.length === 0) {
+    const questionToRestore = deletedBaseQuestions.pop();
+    if (questionToRestore) {
+      saveBaseQuestionPersonalizations();
+      questions = [...getVisibleBaseQuestions(), ...customQuestions];
+    }
+  }
   if (reservedQuestion && !questions.includes(reservedQuestion)) {
     reservedQuestion = "";
     reservedQuestionState.textContent = "무작위";
@@ -980,6 +987,12 @@ function renderCustomQuestionList() {
       isEdited: Boolean(baseQuestionEdits[question])
     }))
     .filter((item) => !item.isDeleted);
+  const deletedBaseQuestionItems = deletedBaseQuestions
+    .filter((question) => baseQuestions.includes(question))
+    .map((question) => ({
+      originalQuestion: question,
+      question: baseQuestionEdits[question] || question
+    }));
   const baseQuestionsHtml = visibleBaseQuestionItems.length
     ? visibleBaseQuestionItems
       .map((item) => `
@@ -997,6 +1010,21 @@ function renderCustomQuestionList() {
       `)
       .join("")
     : `<p class="custom-question-empty">표시 중인 기본 질문이 없습니다.</p>`;
+  const deletedBaseQuestionsHtml = deletedBaseQuestionItems.length
+    ? deletedBaseQuestionItems
+      .map((item) => `
+        <article class="custom-question-item is-deleted">
+          <div class="custom-question-item-header">
+            <span class="custom-question-badge is-deleted">삭제됨</span>
+          </div>
+          <p>${escapeHtml(item.question)}</p>
+          <div class="custom-question-item-actions">
+            <button class="mini-btn" type="button" data-restore-base-question="${escapeHtml(item.originalQuestion)}">복원</button>
+          </div>
+        </article>
+      `)
+      .join("")
+    : `<p class="custom-question-empty">삭제한 기본 질문이 없습니다.</p>`;
   const customQuestionsHtml = customQuestions.length
     ? customQuestions
       .map((question, index) => `
@@ -1013,17 +1041,19 @@ function renderCustomQuestionList() {
     `)
       .join("")
     : `<p class="custom-question-empty">아직 직접 추가한 질문이 없습니다.</p>`;
-  const restoreButtonHtml = deletedBaseQuestions.length > 0
-    ? `<button class="mini-btn custom-question-restore-btn" type="button" data-restore-base-questions>삭제한 기본 질문 복원 (${deletedBaseQuestions.length})</button>`
-    : "";
 
   list.innerHTML = `
     <section class="custom-question-section">
       <div class="custom-question-section-header">
         <h3>기본 질문</h3>
-        ${restoreButtonHtml}
       </div>
       ${baseQuestionsHtml}
+    </section>
+    <section class="custom-question-section">
+      <div class="custom-question-section-header">
+        <h3>삭제한 기본 질문</h3>
+      </div>
+      ${deletedBaseQuestionsHtml}
     </section>
     <section class="custom-question-section">
       <div class="custom-question-section-header">
@@ -1073,6 +1103,12 @@ function editQuestion(type, key) {
 async function deleteQuestion(type, key) {
   const question = type === "base" ? baseQuestionEdits[key] || key : customQuestions[key];
   if (!question) return;
+  if (getVisibleQuestionCount() <= 1) {
+    resetCustomQuestionForm("질문은 최소 1개 이상 남아 있어야 합니다.");
+    const status = document.querySelector("#customQuestionStatus");
+    status?.classList.add("is-error");
+    return;
+  }
 
   const confirmed = await openConfirmDialog({
     title: "질문을 삭제할까요?",
@@ -1102,11 +1138,15 @@ async function deleteQuestion(type, key) {
   renderCustomQuestionList();
 }
 
-function restoreBaseQuestions() {
-  deletedBaseQuestions = [];
+function getVisibleQuestionCount() {
+  return getVisibleBaseQuestions().length + customQuestions.length;
+}
+
+function restoreBaseQuestion(question) {
+  deletedBaseQuestions = deletedBaseQuestions.filter((deletedQuestion) => deletedQuestion !== question);
   saveBaseQuestionPersonalizations();
   syncQuestions();
-  resetCustomQuestionForm("삭제한 기본 질문을 복원했습니다.");
+  resetCustomQuestionForm("기본 질문을 복원했습니다.");
   renderCustomQuestionList();
 }
 
@@ -1631,9 +1671,9 @@ async function handleModalClick(event) {
     return;
   }
 
-  const restoreBaseQuestionsButton = event.target.closest("[data-restore-base-questions]");
-  if (restoreBaseQuestionsButton) {
-    restoreBaseQuestions();
+  const restoreBaseQuestionButton = event.target.closest("[data-restore-base-question]");
+  if (restoreBaseQuestionButton) {
+    restoreBaseQuestion(restoreBaseQuestionButton.dataset.restoreBaseQuestion);
     return;
   }
 
