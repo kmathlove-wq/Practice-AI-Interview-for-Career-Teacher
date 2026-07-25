@@ -258,11 +258,14 @@ function skipQuestion() {
 }
 
 async function retryCurrentQuestion() {
-  if (phase !== "answer" || currentTimerRemaining <= ANSWER_SECONDS - 20 || !currentQuestion) return;
+  const canRetryEarly = phase === "answer" && currentTimerRemaining > ANSWER_SECONDS - 20;
+  const canRetryAfterAnswer = phase === "done";
+  if ((!canRetryEarly && !canRetryAfterAnswer) || !currentQuestion) return;
 
   stopCurrentTimer();
   stopActiveRecording();
   resetResult();
+  retryBtn.disabled = true;
   setQuestionText(currentQuestion);
   renderAnswerGuide(currentQuestion);
   await runAnswerPhase();
@@ -567,7 +570,9 @@ function setPhase(nextPhase) {
 }
 
 function updateRetryAvailability() {
-  retryBtn.disabled = !(phase === "answer" && currentTimerRemaining > ANSWER_SECONDS - 20);
+  const canRetryEarly = phase === "answer" && currentTimerRemaining > ANSWER_SECONDS - 20;
+  const canRetryAfterAnswer = phase === "done" && Boolean(currentQuestion);
+  retryBtn.disabled = !canRetryEarly && !canRetryAfterAnswer;
 }
 
 async function checkEnvironment() {
