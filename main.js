@@ -249,12 +249,12 @@ async function startPractice() {
   await runCurrentQuestion();
 }
 
-function skipQuestion() {
+async function skipQuestion() {
   stopCurrentTimer();
-  stopActiveRecording();
+  await stopActiveRecording();
   resetResult();
   pickRandomQuestion(currentQuestion);
-  runCurrentQuestion();
+  await runCurrentQuestion();
 }
 
 async function retryCurrentQuestion() {
@@ -263,7 +263,7 @@ async function retryCurrentQuestion() {
   if ((!canRetryEarly && !canRetryAfterAnswer) || !currentQuestion) return;
 
   stopCurrentTimer();
-  stopActiveRecording();
+  await stopActiveRecording();
   resetResult();
   retryBtn.disabled = true;
   setQuestionText(currentQuestion);
@@ -500,29 +500,37 @@ function showRecordingResult(sessionId) {
 }
 
 function stopActiveRecording() {
-  shouldRecognize = false;
+  // 녹음기의 "정지됨" 신호(stop 이벤트)는 비동기로 늦게 도착한다. 그 신호가 도착해야
+  // showRecordingResult()가 실행되어 피드백이 만들어지므로, 건너뛰기/다시 시작에서도
+  // 피드백을 보여주려면 이 신호가 끝날 때까지 기다려야 한다.
+  return new Promise((resolve) => {
+    shouldRecognize = false;
 
-  if (recognition) {
-    try {
-      recognition.stop();
-    } catch {
-      // Recognition may already be stopped.
+    if (recognition) {
+      try {
+        recognition.stop();
+      } catch {
+        // Recognition may already be stopped.
+      }
+      recognition = null;
     }
-    recognition = null;
-  }
 
-  if (recorder && recorder.state !== "inactive") {
-    recorder.stop();
-  }
+    if (recorder && recorder.state !== "inactive") {
+      recorder.addEventListener("stop", () => resolve(), { once: true });
+      recorder.stop();
+    } else {
+      resolve();
+    }
 
-  if (audioStream) {
-    audioStream.getTracks().forEach((track) => track.stop());
-    audioStream = null;
-  }
+    if (audioStream) {
+      audioStream.getTracks().forEach((track) => track.stop());
+      audioStream = null;
+    }
 
-  stopPreviewStream();
+    stopPreviewStream();
 
-  cameraPreview.srcObject = null;
+    cameraPreview.srcObject = null;
+  });
 }
 
 function stopCurrentTimer() {
@@ -549,9 +557,8 @@ function resetResult() {
   audioPlayer.load();
   recordingState.textContent = "녹음 전";
   recordingState.classList.remove("recording");
-  feedbackBox.hidden = true;
-  feedbackBox.innerHTML = "";
-  transcriptText.textContent = "답변 시간이 끝나면 녹음 파일과 음성 인식 텍스트가 이곳에 표시됩니다.";
+  // 피드백 박스는 여기서 지우지 않는다. 건너뛰기/다시 시작 직전에 stopActiveRecording()이
+  // 끝난 답변의 피드백을 이미 렌더링해뒀고, 다음 답변이 끝나면 그때 새 결과로 덮어써진다.
   updateRetryAvailability();
 }
 

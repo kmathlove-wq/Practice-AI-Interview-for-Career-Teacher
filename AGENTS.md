@@ -82,7 +82,10 @@ startPractice()
 
 - `getInterviewStream()`은 영상+음성을 우선 요청하고, 실패하면 음성만 요청한다.
 - `startRecording()`은 `MediaRecorder`, 카메라 미리보기, 음성 인식을 시작한다.
-- `stopActiveRecording()`은 recognition, recorder, stream track을 모두 정리한다.
+- `stopActiveRecording()`은 recognition, recorder, stream track을 모두 정리하고, `recorder`의
+  비동기 `stop` 이벤트(= `showRecordingResult()` 실행 완료)까지 기다리는 Promise를 반환한다.
+- `skipQuestion()`/`retryCurrentQuestion()`은 `stopActiveRecording()`을 반드시 `await`한 뒤
+  `resetResult()`를 호출해야 건너뛴/재시도한 답변의 피드백이 먼저 렌더링된다.
 - HTTPS가 아니면 카메라/마이크가 안 될 수 있으므로 `getMediaSupportMessage()` 메시지를 유지한다.
 - 사용자 답변 영상/오디오는 서버에 업로드하지 않는다. 브라우저 메모리의 Object URL로만 재생한다.
 
@@ -105,7 +108,10 @@ startPractice()
 
 - 녹화 결과는 비디오 또는 오디오 플레이어에 표시한다.
 - 음성 인식 텍스트는 `transcriptText`에 표시한다.
-- `renderFeedback()`은 답변 분량, 말하기 속도, 핵심어 반영률, 습관어를 계산한다.
+- `renderFeedback()`은 답변 분량, 말하기 속도, 핵심어 반영률, 습관어를 계산한다. AI API 없이
+  텍스트 길이·속도·키워드 포함 여부만으로 규칙 기반 문구를 고른다.
+- `질문 건너뛰기`/`다시 시작`으로 답변을 중단해도 그 시점까지의 피드백은 그대로 표시된다.
+  `resetResult()`는 더 이상 `feedbackBox`를 지우지 않으며, 다음 답변이 끝나야 새 결과로 덮어써진다.
 - `savePracticeRecord()`는 최근 5개 기록만 `practiceInterviewRecords` 키에 저장한다.
 - `renderPracticeHistory()`는 `질문:` / `답변:` 라벨로 전체 답변을 표시한다.
 - 기록의 `삭제` 버튼은 해당 항목만 localStorage에서 제거한다.
