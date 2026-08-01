@@ -151,6 +151,18 @@ h1 {
   line-height: 1.42;
 }
 
+.question-box.placeholder-question {
+  background: transparent;
+  border-style: dashed;
+}
+
+.question-box.placeholder-question h2 {
+  font-size: clamp(17px, 2vw, 22px);
+  font-weight: 600;
+  font-style: italic;
+  color: var(--muted);
+}
+
 .timer-card {
   display: flex;
   justify-content: space-between;
@@ -176,7 +188,7 @@ h1 {
   margin-top: 18px;
   overflow: hidden;
   border-radius: 999px;
-  background: #e6eef3;
+  background: #cddce6;
 }
 
 .progress-bar {
@@ -228,6 +240,17 @@ h1 {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+.primary-btn:disabled {
+  background: #9fb7c2;
+}
+
+.secondary-btn:disabled {
+  background: #eef2f5;
+  border-color: #e3e9ed;
+  color: #9aa7b1;
+  opacity: 1;
 }
 
 .interview-tools {
@@ -358,6 +381,35 @@ button:disabled {
   border-radius: 8px;
   background: #10212b;
   object-fit: cover;
+}
+
+.camera-preview-wrap {
+  position: relative;
+  margin-top: 18px;
+}
+
+.camera-preview-wrap .camera-preview {
+  margin-top: 0;
+}
+
+.camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #8ca3b8;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  pointer-events: none;
+}
+
+.camera-placeholder[hidden] {
+  display: none;
 }
 
 .check-list {

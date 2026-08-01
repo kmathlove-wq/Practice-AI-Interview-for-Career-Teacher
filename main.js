@@ -43,6 +43,7 @@ const deviceCheckBtn = document.querySelector("#deviceCheckBtn");
 const recordingState = document.querySelector("#recordingState");
 const cameraState = document.querySelector("#cameraState");
 const cameraPreview = document.querySelector("#cameraPreview");
+const cameraPlaceholder = document.querySelector("#cameraPlaceholder");
 const videoPlayer = document.querySelector("#videoPlayer");
 const audioPlayer = document.querySelector("#audioPlayer");
 const transcriptText = document.querySelector("#transcriptText");
@@ -305,7 +306,7 @@ function pickRandomQuestion(previousQuestion = "") {
   if (reservedQuestion) {
     currentQuestion = reservedQuestion;
     reservedQuestion = "";
-    reservedQuestionState.textContent = "무작위";
+    reservedQuestionState.textContent = "예약 없음";
     questionPicker.value = "";
     updateQuestionPickerPlaceholder();
     setQuestionText(currentQuestion);
@@ -322,6 +323,7 @@ function pickRandomQuestion(previousQuestion = "") {
 
 function setQuestionText(question) {
   questionText.textContent = question;
+  questionBox.classList.remove("placeholder-question");
   questionBox.classList.toggle("long-question", question.length > 95);
   questionBox.classList.toggle("very-long-question", question.length > 150);
 }
@@ -530,6 +532,7 @@ function stopActiveRecording() {
     stopPreviewStream();
 
     cameraPreview.srcObject = null;
+    cameraPlaceholder.hidden = false;
   });
 }
 
@@ -616,6 +619,7 @@ function attachPreview(stream) {
   if (stream.getVideoTracks().length === 0) return;
 
   cameraPreview.srcObject = stream;
+  cameraPlaceholder.hidden = true;
   updateEnvironmentItem("camera", "카메라가 정상적으로 연결되었습니다.", true);
   updateEnvironmentItem("microphone", "마이크가 정상적으로 연결되었습니다.", true);
 }
@@ -836,7 +840,7 @@ function syncQuestions() {
   }
   if (reservedQuestion && !questions.includes(reservedQuestion)) {
     reservedQuestion = "";
-    reservedQuestionState.textContent = "무작위";
+    reservedQuestionState.textContent = "예약 없음";
   }
   renderQuestionPicker();
 }
@@ -881,7 +885,7 @@ function reserveSelectedQuestion() {
 
 function clearReservedQuestion() {
   reservedQuestion = "";
-  reservedQuestionState.textContent = "무작위";
+  reservedQuestionState.textContent = "예약 없음";
   questionPicker.value = "";
   updateQuestionPickerPlaceholder();
 }
@@ -1208,7 +1212,7 @@ async function deleteQuestion(type, key) {
 
   if (reservedQuestion === question) {
     reservedQuestion = "";
-    reservedQuestionState.textContent = "무작위";
+    reservedQuestionState.textContent = "예약 없음";
   }
   syncQuestions();
   resetCustomQuestionForm("질문을 삭제했습니다.");
@@ -1280,7 +1284,7 @@ async function deleteSelectedActiveQuestions() {
 
   if (selectedVisibleQuestions.includes(reservedQuestion)) {
     reservedQuestion = "";
-    reservedQuestionState.textContent = "무작위";
+    reservedQuestionState.textContent = "예약 없음";
   }
 
   saveBaseQuestionPersonalizations();
