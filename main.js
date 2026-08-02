@@ -36,6 +36,7 @@ const phaseLabel = document.querySelector("#phaseLabel");
 const timerTitle = document.querySelector("#timerTitle");
 const timerText = document.querySelector("#timerText");
 const progressBar = document.querySelector("#progressBar");
+const timerRing = document.querySelector("#timerRing");
 const startBtn = document.querySelector("#startBtn");
 const skipBtn = document.querySelector("#skipBtn");
 const retryBtn = document.querySelector("#retryBtn");
@@ -347,14 +348,18 @@ function runTimer(totalSeconds, label) {
   });
 }
 
+const TIMER_RING_CIRCUMFERENCE = 2 * Math.PI * 54;
+
 function updateTimer(remaining, total) {
   currentTimerRemaining = remaining;
   const minutes = String(Math.floor(remaining / 60)).padStart(2, "0");
   const seconds = String(remaining % 60).padStart(2, "0");
   const elapsedRatio = total === 0 ? 0 : ((total - remaining) / total) * 100;
+  const remainingRatio = total === 0 ? 0 : Math.min(1, Math.max(0, remaining / total));
 
   timerText.textContent = `${minutes}:${seconds}`;
   progressBar.style.width = `${Math.min(100, Math.max(0, elapsedRatio))}%`;
+  timerRing.style.strokeDashoffset = `${TIMER_RING_CIRCUMFERENCE * (1 - remainingRatio)}`;
   updateRetryAvailability();
 }
 

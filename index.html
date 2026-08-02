@@ -6,7 +6,7 @@
   <title>진로전담교사 면접 연습</title>
   <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
   <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
-  <link rel="stylesheet" href="style.css?v=20260801-1">
+  <link rel="stylesheet" href="style.css?v=20260802-1">
 </head>
 <body>
   <main class="app">
@@ -25,82 +25,78 @@
         </div>
       </div>
 
+      <article class="tool-panel nav-panel">
+        <div class="timer-card">
+          <p class="section-label">답변 남은 시간</p>
+          <div class="timer-ring-wrap">
+            <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
+              <circle class="ring-track" cx="70" cy="70" r="54"></circle>
+              <circle class="ring-progress" id="timerRing" cx="70" cy="70" r="54"
+                stroke-dasharray="339.3" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="timer-center">
+              <strong id="timerText">00:00</strong>
+              <p id="timerTitle">준비 완료</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-panel">
+          <div class="result-header">
+            <div>
+              <p class="section-label">질문 리스트</p>
+              <h3>다음 질문 예약</h3>
+            </div>
+          </div>
+          <div class="reservation-actions">
+            <span id="reservedQuestionState" class="chip">예약 없음</span>
+            <button id="openCustomQuestionBtn" class="mini-btn" type="button">질문 추가</button>
+            <button id="randomQuestionBtn" class="mini-btn" type="button">무작위</button>
+          </div>
+          <label class="question-picker-label" for="questionPicker">연습할 질문 선택</label>
+          <select id="questionPicker" class="question-picker"></select>
+        </div>
+
+        <div class="status-panel">
+          <p class="section-label">진행 상태</p>
+          <ul class="check-list" id="environmentList">
+            <li data-check="camera">카메라 권한 확인 전</li>
+            <li data-check="microphone">마이크 권한 확인 전</li>
+            <li data-check="place">밝은 장소와 안정된 자세를 준비하세요.</li>
+          </ul>
+        </div>
+      </article>
+
       <section class="question-box placeholder-question" aria-live="polite">
         <p class="section-label">면접 질문</p>
         <h2 id="questionText">시작 버튼을 누르면 예상 질문이 무작위로 선택됩니다.</h2>
       </section>
 
-      <section class="timer-area" aria-live="polite">
-        <div class="timer-card">
-          <p id="timerTitle">준비 완료</p>
-          <strong id="timerText">00:00</strong>
+      <article class="tool-panel stage-panel">
+        <p class="section-label">영상면접 · 카메라 미리보기</p>
+        <div class="camera-preview-wrap stage">
+          <span id="cameraState" class="badge-status">카메라 대기</span>
+          <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
+          <div id="cameraPlaceholder" class="camera-placeholder">
+            <div class="cam-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+                <path d="M4 8.5a1.5 1.5 0 0 1 1.5-1.5h2l1-1.5h7l1 1.5h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z" />
+                <circle cx="12" cy="13" r="3.4" />
+              </svg>
+            </div>
+            <p class="hint">카메라 권한을 허용하면<br>미리보기가 시작됩니다.</p>
+          </div>
         </div>
         <div class="progress-track" aria-hidden="true">
           <div id="progressBar" class="progress-bar"></div>
         </div>
-      </section>
+      </article>
 
       <section class="controls" aria-label="연습 조작">
         <button id="startBtn" class="primary-btn" type="button">시작</button>
         <button id="skipBtn" class="secondary-btn" type="button" disabled>질문 건너뛰기</button>
         <button id="retryBtn" class="secondary-btn" type="button" disabled>다시 시작</button>
         <button id="deviceCheckBtn" class="secondary-btn" type="button">응시 환경 체크</button>
-      </section>
-
-      <section class="interview-tools" aria-label="영상면접 연습 도구">
-        <article class="tool-panel video-panel">
-          <div class="result-header">
-            <div>
-              <p class="section-label">영상면접</p>
-              <h3>카메라 미리보기</h3>
-            </div>
-            <span id="cameraState">카메라 대기</span>
-          </div>
-          <div class="camera-preview-wrap">
-            <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
-            <div id="cameraPlaceholder" class="camera-placeholder">
-              <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path d="M4 8.5a1.5 1.5 0 0 1 1.5-1.5h2l1-1.5h7l1 1.5h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z" />
-                <circle cx="12" cy="13" r="3.4" />
-              </svg>
-              <p>카메라 권한을 허용하면<br>미리보기가 시작됩니다.</p>
-            </div>
-          </div>
-          <ul class="check-list" id="environmentList">
-            <li data-check="camera">카메라 권한 확인 전</li>
-            <li data-check="microphone">마이크 권한 확인 전</li>
-            <li data-check="place">밝은 장소와 안정된 자세를 준비하세요.</li>
-          </ul>
-        </article>
-
-        <article class="tool-panel guide-panel">
-          <div class="result-header">
-            <div>
-              <p class="section-label">면접 가이드</p>
-              <h3>질문별 답변 힌트</h3>
-            </div>
-            <span>추천/지양/유사</span>
-          </div>
-          <div id="answerGuide" class="guide-content">
-            질문이 선택되면 추천 답변 방향, 지양할 답변, 유사 질문이 표시됩니다.
-          </div>
-        </article>
-
-        <article class="tool-panel order-panel">
-          <div class="result-header">
-            <div>
-              <p class="section-label">질문 리스트</p>
-              <h3>다음 질문 예약</h3>
-            </div>
-            <div class="reservation-actions">
-              <span id="reservedQuestionState">예약 없음</span>
-              <button id="openCustomQuestionBtn" class="mini-btn" type="button">질문 추가</button>
-              <button id="randomQuestionBtn" class="mini-btn" type="button">무작위</button>
-            </div>
-          </div>
-          <label class="question-picker-label" for="questionPicker">연습할 질문 선택</label>
-          <select id="questionPicker" class="question-picker"></select>
-        </article>
       </section>
 
       <section class="result-box answer-result" aria-labelledby="result-title">
@@ -123,18 +119,11 @@
         <div id="feedbackBox" class="feedback-box" hidden></div>
       </section>
 
-      <section class="result-box history-panel" aria-labelledby="history-title">
-        <div class="result-header">
-          <div>
-            <p class="section-label">연습기록</p>
-            <h3 id="history-title">최근 답변 기록</h3>
-          </div>
-          <span id="historyCount">0개</span>
-        </div>
-        <div id="practiceHistory" class="history-list">
-          아직 저장된 연습 기록이 없습니다.
-        </div>
-      </section>
+      <div class="sr-only" aria-hidden="true">
+        <div id="answerGuide"></div>
+        <div id="practiceHistory" class="history-list">아직 저장된 연습 기록이 없습니다.</div>
+        <span id="historyCount">0개</span>
+      </div>
     </section>
   </main>
 
@@ -182,6 +171,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="main.js?v=20260801-1"></script>
+  <script src="main.js?v=20260802-1"></script>
 </body>
 </html>

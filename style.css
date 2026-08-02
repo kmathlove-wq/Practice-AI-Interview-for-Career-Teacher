@@ -1,12 +1,14 @@
 :root {
   color-scheme: light;
-  --bg: #eef4f8;
+  --bg: #eef2f6;
   --panel: #ffffff;
   --text: #14212b;
   --muted: #637381;
-  --line: #d8e3ea;
+  --gray-light: #9aa5b1;
+  --line: #e3e8ef;
   --primary: #176b87;
   --primary-dark: #0f5065;
+  --primary-tint: #e7f1f4;
   --accent: #ffb703;
   --danger: #c2410c;
   --shadow: 0 18px 50px rgba(20, 33, 43, 0.12);
@@ -253,27 +255,12 @@ button:disabled {
   opacity: 1;
 }
 
-.interview-tools {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 18px;
-  margin-top: 28px;
-}
-
-.order-panel {
-  grid-column: 1 / -1;
-}
-
-.guide-panel,
-.history-panel {
-  display: none;
-}
-
 .tool-panel {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 14px;
   padding: 20px;
   background: #fbfdff;
+  margin-top: 20px;
 }
 
 .tool-panel h3 {
@@ -281,10 +268,8 @@ button:disabled {
   font-size: 22px;
 }
 
-#cameraState,
-.guide-panel .result-header span,
-#reservedQuestionState,
-#historyCount {
+#historyCount,
+.chip {
   flex: 0 0 auto;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -295,13 +280,99 @@ button:disabled {
   white-space: nowrap;
 }
 
+.chip {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-tint);
+}
+
 .reservation-actions {
   display: flex;
   flex: 0 0 auto;
   flex-wrap: wrap;
-  justify-content: flex-end;
   gap: 8px;
   align-items: center;
+  margin-top: 10px;
+}
+
+/* 왼쪽 내비게이션: 타이머 + 질문 리스트 + 진행 상태를 한 카드에 모은다 */
+.nav-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.timer-card .section-label {
+  margin-bottom: 0;
+}
+
+.timer-ring-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+}
+
+.timer-ring-wrap svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-track {
+  fill: none;
+  stroke: var(--primary-tint);
+  stroke-width: 9;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.timer-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-center strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.timer-center p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.order-panel {
+  padding-top: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+
+.status-panel {
+  padding-top: 18px;
 }
 
 .result-actions {
@@ -410,6 +481,40 @@ button:disabled {
 
 .camera-placeholder[hidden] {
   display: none;
+}
+
+.stage {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cam-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #3a5561;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9fb2bc;
+}
+
+.badge-status {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1;
+  background: rgba(18, 34, 44, 0.85);
+  color: #cfe3e9;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 0;
+}
+
+.stage-panel .progress-track {
+  margin-top: 16px;
 }
 
 .check-list {
@@ -1235,13 +1340,13 @@ audio {
   }
 
   .top-bar,
-  .result-header,
-  .timer-card {
+  .result-header {
     flex-direction: column;
   }
 
-  .interview-tools {
-    grid-template-columns: 1fr;
+  .timer-ring-wrap {
+    width: 110px;
+    height: 110px;
   }
 
   .brand {
@@ -1350,13 +1455,13 @@ audio {
     height: calc(100vh - 24px);
     min-height: 0;
     display: grid;
-    grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.18fr) minmax(0, 1.18fr);
-    grid-template-rows: auto minmax(0, 1.24fr) minmax(150px, 0.48fr) minmax(190px, 0.58fr);
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.3fr) minmax(260px, 0.85fr);
+    grid-template-rows: auto minmax(0, 0.85fr) minmax(150px, 1.15fr) minmax(120px, 0.5fr);
     grid-template-areas:
       "top top top"
-      "video question question"
-      "video timer result"
-      "order controls result";
+      "nav question result"
+      "nav stage result"
+      "nav controls result";
     column-gap: 14px;
     row-gap: 8px;
     padding: 18px;
@@ -1385,86 +1490,72 @@ audio {
 
   .status-pill,
   #recordingState,
-  #cameraState,
-  .guide-panel .result-header span,
-  #reservedQuestionState,
   #historyCount {
     padding: 7px 12px;
     font-size: 13px;
   }
 
   .question-box,
-  .timer-area,
   .result-box,
-  .interview-tools,
   .controls {
     margin-top: 0;
   }
 
-  .interview-tools {
-    display: contents;
-  }
-
-  .video-panel {
-    grid-area: video;
-  }
-
-  .guide-panel {
-    display: none;
-  }
-
-  .order-panel {
-    grid-area: order;
+  .nav-panel {
+    grid-area: nav;
     align-self: stretch;
+    margin-top: 0;
     overflow: auto;
   }
 
-  .order-panel .result-header {
+  .answer-result .result-header {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 8px;
   }
 
-  .order-panel .reservation-actions {
+  .answer-result .result-actions {
     justify-content: flex-start;
+  }
+
+  .stage-panel {
+    grid-area: stage;
+    align-self: stretch;
+    min-height: 0;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stage {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .stage .camera-preview {
+    height: 100%;
   }
 
   .question-box {
     grid-area: question;
     min-height: 0;
-    padding: 38px 40px;
+    padding: 28px 32px;
     overflow: auto;
   }
 
   .question-box h2 {
-    font-size: clamp(34px, 3.2vw, 52px);
-    line-height: 1.28;
+    font-size: clamp(28px, 2.6vw, 40px);
+    line-height: 1.3;
   }
 
   .question-box.long-question h2 {
-    font-size: clamp(26px, 2.45vw, 38px);
+    font-size: clamp(22px, 2vw, 30px);
     line-height: 1.34;
   }
 
   .question-box.very-long-question h2 {
-    font-size: clamp(22px, 1.95vw, 30px);
+    font-size: clamp(19px, 1.7vw, 24px);
     line-height: 1.42;
-  }
-
-  .timer-area {
-    grid-area: timer;
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    background: #fbfdff;
-    padding: 18px 20px;
-  }
-
-  .timer-card strong {
-    font-size: clamp(56px, 5vw, 86px);
   }
 
   .progress-track {
@@ -1608,28 +1699,29 @@ audio {
 
 @media (min-width: 900px) and (max-width: 1180px) {
   .practice-panel {
-    grid-template-columns: minmax(240px, 0.68fr) minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 0.98fr) minmax(125px, 0.42fr) minmax(125px, 0.38fr);
+    grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.2fr) minmax(220px, 0.8fr);
+    grid-template-rows: auto minmax(0, 0.9fr) minmax(125px, 1.05fr) minmax(110px, 0.45fr);
+  }
+
+  .timer-ring-wrap {
+    width: 112px;
+    height: 112px;
   }
 
   .question-box {
-    padding: 26px 22px;
+    padding: 20px 18px;
   }
 
   .question-box h2 {
-    font-size: clamp(28px, 3vw, 42px);
+    font-size: clamp(22px, 2.4vw, 32px);
   }
 
   .question-box.long-question h2 {
-    font-size: clamp(24px, 2.5vw, 32px);
+    font-size: clamp(19px, 2vw, 26px);
   }
 
   .question-box.very-long-question h2 {
-    font-size: clamp(20px, 2.1vw, 26px);
-  }
-
-  .timer-card strong {
-    font-size: clamp(48px, 5vw, 72px);
+    font-size: clamp(17px, 1.7vw, 21px);
   }
 
   .controls {

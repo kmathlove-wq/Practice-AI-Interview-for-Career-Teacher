@@ -116,17 +116,27 @@ startPractice()
 - `renderPracticeHistory()`는 `질문:` / `답변:` 라벨로 전체 답변을 표시한다.
 - 기록의 `삭제` 버튼은 해당 항목만 localStorage에서 제거한다.
 
-## DOM 주요 영역
+## DOM 주요 영역 (2026-08-02 좌측 내비 · 중앙 · 우측 결과 3단 레이아웃으로 개편)
+
+레이아웃 참고 원본: `C:\Users\kmath\Downloads\interview_layout_redesign.html` (정적 목업, 실제 동작 없음).
+데스크톱(≥900px)은 `.practice-panel`이 `grid-template-areas: "top top top" / "nav question result"
+/ "nav stage result" / "nav controls result"`로 배치한다. 900px 미만은 일반 블록 스택이라
+DOM 순서가 곧 화면 순서다.
 
 ```
 .top-bar            → 로고/제목/상태 표시
 .top-actions        → #openImprovementsBtn, #phaseLabel
-.question-box       → #questionText
-.timer-area         → #timerTitle, #timerText, #progressBar
-.controls           → 시작, 건너뛰기, 다시 시작, 환경 체크
-.video-panel        → #cameraPreview, #environmentList
-.order-panel        → #questionPicker, #openCustomQuestionBtn, #randomQuestionBtn
-.answer-result      → 결과 버튼, 미디어 플레이어, transcript, feedback
+.nav-panel           → grid-area:nav. 안에 .timer-card(원형 타이머), .order-panel, .status-panel 포함
+.timer-card          → #timerRing(SVG 원형 진행률), #timerText, #timerTitle
+.order-panel          → #reservedQuestionState, #openCustomQuestionBtn, #randomQuestionBtn, #questionPicker
+.status-panel         → #environmentList
+.question-box       → grid-area:question. #questionText
+.stage-panel         → grid-area:stage. .camera-preview-wrap.stage(#cameraState 배지, #cameraPreview,
+                        #cameraPlaceholder) + #progressBar
+.controls           → grid-area:controls. 시작, 건너뛰기, 다시 시작, 환경 체크
+.answer-result      → grid-area:result. 결과 버튼, 미디어 플레이어, transcript, feedback
+.sr-only            → #answerGuide, #practiceHistory, #historyCount를 화면엔 숨기고 값만 유지
+                        (openGuideBtn/openHistoryBtn이 그 innerHTML을 모달로 복사해 보여준다)
 #infoModal          → 가이드/기록/개선사항 모달
 #confirmModal       → 개선사항 삭제/수정 완료 확인 모달
 #improvementPromoModal → 개선사항 기능 안내 모달
