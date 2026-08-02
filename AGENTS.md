@@ -64,9 +64,9 @@ python3 -m http.server 8000
 - 기본 질문의 수정/삭제도 원본 파일을 바꾸지 않고 `practiceInterviewBaseQuestionEdits`, `practiceInterviewDeletedBaseQuestions`에 개인 설정으로 저장한다.
 - 질문은 최소 1개 이상 남겨야 하며, 일반/복원 목록 질문은 체크박스로 다중 선택해 삭제·복원할 수 있다.
 - `setQuestionText()`는 질문 길이에 따라 `long-question`, `very-long-question` 클래스를 붙여 글자 크기를 조정한다.
-- 질문 관리 모달의 "질문 순서" 목록에서 맨 앞으로/▲/▼로 연습 번호를 바꿀 수 있다. `questionOrder`
-  (`practiceInterviewQuestionOrder`)에 `base:원본텍스트`/`custom:현재텍스트` 키로 저장한다
-  (`buildQuestionEntries()`). 개인 질문 텍스트를 수정하면 그 항목의 순서는 초기화된다.
+- "질문 순서" 목록(기본은 접힘, `질문 순서 보기` 버튼으로 펼침)에서 맨 앞으로/▲/▼로 연습 번호를
+  바꾼다. 긴 질문은 40자로 줄이고 `전체`로 펼친다. `questionOrder`(`practiceInterviewQuestionOrder`)에
+  `base:원본텍스트`/`custom:현재텍스트` 키로 저장(`buildQuestionEntries()`); 개인 질문 수정 시 순서 초기화.
 
 ### 면접 흐름
 

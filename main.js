@@ -110,6 +110,8 @@ let improvementRefreshTimerId = null;
 let improvementRealtimeChannel = null;
 let improvementStorageMode = "remote";
 let isBaseRestoreListOpen = false;
+let isQuestionOrderListOpen = false;
+let expandedOrderQuestionKeys = new Set();
 
 init();
 
@@ -965,6 +967,8 @@ function updateQuestionPickerPlaceholder() {
 function openCustomQuestionModal() {
   stopImprovementAutoRefresh();
   isBaseRestoreListOpen = false;
+  isQuestionOrderListOpen = false;
+  expandedOrderQuestionKeys = new Set();
   modalTitle.textContent = "질문 관리";
   modalBody.innerHTML = `
     <form id="customQuestionForm" class="custom-question-form">
@@ -984,7 +988,7 @@ function openCustomQuestionModal() {
     <section class="custom-question-section">
       <div class="custom-question-section-header">
         <h3>질문 순서</h3>
-        <span class="custom-question-status">연습할 때 나오는 번호 순서예요. 앞으로 옮기면 더 먼저 나와요.</span>
+        <button id="toggleQuestionOrderBtn" class="mini-btn custom-question-restore-btn" type="button" data-toggle-question-order>질문 순서 보기</button>
       </div>
       <div id="questionOrderList" class="custom-question-list"></div>
     </section>
@@ -1088,26 +1092,47 @@ function resetCustomQuestionForm(message = "") {
   status.classList.remove("is-error");
 }
 
+const QUESTION_ORDER_TRUNCATE_LENGTH = 40;
+
 function renderQuestionOrderList() {
+  const toggleBtn = document.querySelector("#toggleQuestionOrderBtn");
+  if (toggleBtn) {
+    toggleBtn.textContent = isQuestionOrderListOpen
+      ? "질문 순서 닫기"
+      : `질문 순서 보기 (${orderedQuestionEntries.length})`;
+  }
+
   const container = document.querySelector("#questionOrderList");
   if (!container) return;
 
+  if (!isQuestionOrderListOpen) {
+    container.innerHTML = "";
+    return;
+  }
+
   container.innerHTML = orderedQuestionEntries.length
     ? orderedQuestionEntries
-      .map((entry, index) => `
+      .map((entry, index) => {
+        const isExpanded = expandedOrderQuestionKeys.has(entry.key);
+        const isLong = entry.text.length > QUESTION_ORDER_TRUNCATE_LENGTH;
+        const displayText = isExpanded || !isLong
+          ? entry.text
+          : `${entry.text.slice(0, QUESTION_ORDER_TRUNCATE_LENGTH)}…`;
+        return `
         <article class="custom-question-item">
           <div class="custom-question-item-header">
             <span class="custom-question-badge">${index + 1}번</span>
             <span class="custom-question-badge${entry.type === "custom" ? " is-custom" : ""}">${entry.type === "custom" ? "개인" : "기본"}</span>
           </div>
-          <p>${escapeHtml(entry.text)}</p>
+          <p>${escapeHtml(displayText)}${isLong ? ` <button class="mini-btn" type="button" data-toggle-question-order-text="${escapeHtml(entry.key)}">${isExpanded ? "접기" : "전체"}</button>` : ""}</p>
           <div class="custom-question-item-actions">
             <button class="mini-btn" type="button" data-move-question-top="${escapeHtml(entry.key)}" ${index === 0 ? "disabled" : ""}>맨 앞으로</button>
             <button class="mini-btn" type="button" data-move-question-up="${escapeHtml(entry.key)}" ${index === 0 ? "disabled" : ""}>▲ 위로</button>
             <button class="mini-btn" type="button" data-move-question-down="${escapeHtml(entry.key)}" ${index === orderedQuestionEntries.length - 1 ? "disabled" : ""}>▼ 아래로</button>
           </div>
         </article>
-      `)
+      `;
+      })
       .join("")
     : `<p class="custom-question-empty">질문이 없습니다.</p>`;
 }
@@ -2049,6 +2074,25 @@ async function handleModalClick(event) {
   const deleteSelectedActiveQuestionsButton = event.target.closest("[data-delete-selected-active-questions]");
   if (deleteSelectedActiveQuestionsButton) {
     await deleteSelectedActiveQuestions();
+    return;
+  }
+
+  const toggleQuestionOrderButton = event.target.closest("[data-toggle-question-order]");
+  if (toggleQuestionOrderButton) {
+    isQuestionOrderListOpen = !isQuestionOrderListOpen;
+    renderQuestionOrderList();
+    return;
+  }
+
+  const toggleQuestionOrderTextButton = event.target.closest("[data-toggle-question-order-text]");
+  if (toggleQuestionOrderTextButton) {
+    const key = toggleQuestionOrderTextButton.dataset.toggleQuestionOrderText;
+    if (expandedOrderQuestionKeys.has(key)) {
+      expandedOrderQuestionKeys.delete(key);
+    } else {
+      expandedOrderQuestionKeys.add(key);
+    }
+    renderQuestionOrderList();
     return;
   }
 
