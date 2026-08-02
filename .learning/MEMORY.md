@@ -17,3 +17,6 @@
   its `.result-header` (title + 2-3 pill buttons) onto vertical single-character lines unless
   `.answer-result .result-header{flex-direction:column}` is set for that width tier — verified by
   screenshotting the 900-1180px tier specifically, not just the widest desktop width.
+- This codebase has no stable question IDs; base questions are keyed by their original (pre-edit)
+  text and custom questions by their current text. The new question-order feature reuses that same
+  convention with `base:`/`custom:` key prefixes to avoid collisions between the two key spaces.

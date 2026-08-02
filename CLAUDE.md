@@ -64,6 +64,9 @@ python3 -m http.server 8000
 - 기본 질문의 수정/삭제도 원본 파일을 바꾸지 않고 `practiceInterviewBaseQuestionEdits`, `practiceInterviewDeletedBaseQuestions`에 개인 설정으로 저장한다.
 - 질문은 최소 1개 이상 남겨야 하며, 일반/복원 목록 질문은 체크박스로 다중 선택해 삭제·복원할 수 있다.
 - `setQuestionText()`는 질문 길이에 따라 `long-question`, `very-long-question` 클래스를 붙여 글자 크기를 조정한다.
+- 질문 관리 모달의 "질문 순서" 목록에서 맨 앞으로/▲/▼로 연습 번호를 바꿀 수 있다. `questionOrder`
+  (`practiceInterviewQuestionOrder`)에 `base:원본텍스트`/`custom:현재텍스트` 키로 저장한다
+  (`buildQuestionEntries()`). 개인 질문 텍스트를 수정하면 그 항목의 순서는 초기화된다.
 
 ### 면접 흐름
 
@@ -131,12 +134,10 @@ DOM 순서가 곧 화면 순서다.
 .order-panel          → #reservedQuestionState, #openCustomQuestionBtn, #randomQuestionBtn, #questionPicker
 .status-panel         → #environmentList
 .question-box       → grid-area:question. #questionText
-.stage-panel         → grid-area:stage. .camera-preview-wrap.stage(#cameraState 배지, #cameraPreview,
-                        #cameraPlaceholder) + #progressBar
+.stage-panel         → grid-area:stage. .stage(#cameraState 배지, #cameraPreview, #cameraPlaceholder) + #progressBar
 .controls           → grid-area:controls. 시작, 건너뛰기, 다시 시작, 환경 체크
 .answer-result      → grid-area:result. 결과 버튼, 미디어 플레이어, transcript, feedback
-.sr-only            → #answerGuide, #practiceHistory, #historyCount를 화면엔 숨기고 값만 유지
-                        (openGuideBtn/openHistoryBtn이 그 innerHTML을 모달로 복사해 보여준다)
+.sr-only            → #answerGuide/#practiceHistory/#historyCount 값만 유지, 가이드/기록 모달이 innerHTML 복사
 #infoModal          → 가이드/기록/개선사항 모달
 #confirmModal       → 개선사항 삭제/수정 완료 확인 모달
 #improvementPromoModal → 개선사항 기능 안내 모달

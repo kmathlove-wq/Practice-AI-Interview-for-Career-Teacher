@@ -22,6 +22,7 @@ const CUSTOM_QUESTIONS_KEY = "practiceInterviewCustomQuestions";
 const DELETED_CUSTOM_QUESTIONS_KEY = "practiceInterviewDeletedCustomQuestions";
 const BASE_QUESTION_EDITS_KEY = "practiceInterviewBaseQuestionEdits";
 const DELETED_BASE_QUESTIONS_KEY = "practiceInterviewDeletedBaseQuestions";
+const QUESTION_ORDER_KEY = "practiceInterviewQuestionOrder";
 const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
@@ -85,6 +86,8 @@ let baseQuestionEdits = {};
 let deletedBaseQuestions = [];
 let customQuestions = [];
 let deletedCustomQuestions = [];
+let questionOrder = [];
+let orderedQuestionEntries = [];
 let questions = [...baseQuestions];
 let currentQuestion = "";
 let timerId = null;
@@ -816,6 +819,40 @@ function loadQuestionPersonalizations() {
   } catch {
     deletedBaseQuestions = [];
   }
+
+  try {
+    const savedOrder = JSON.parse(localStorage.getItem(QUESTION_ORDER_KEY) || "[]");
+    questionOrder = Array.isArray(savedOrder) ? savedOrder.map((key) => String(key)) : [];
+  } catch {
+    questionOrder = [];
+  }
+}
+
+function saveQuestionOrder() {
+  localStorage.setItem(QUESTION_ORDER_KEY, JSON.stringify(questionOrder));
+}
+
+// 기본 질문은 원본(수정 전) 텍스트를, 개인 질문은 현재 텍스트를 순서 키로 쓴다.
+// "base:"/"custom:" 접두사로 두 종류의 키가 우연히 같은 문장이어도 서로 겹치지 않게 한다.
+// (개인 질문 텍스트를 수정하면 그 항목의 수동 순서는 초기화된다 — 별도 ID가 없어 생기는 한계.)
+function buildQuestionEntries() {
+  const visibleBaseOriginals = baseQuestions.filter((question) => !deletedBaseQuestions.includes(question));
+  const baseEntries = visibleBaseOriginals.map((original) => ({
+    key: `base:${original}`,
+    text: baseQuestionEdits[original] || original,
+    type: "base"
+  }));
+  const customEntries = customQuestions.map((question) => ({
+    key: `custom:${question}`,
+    text: question,
+    type: "custom"
+  }));
+  const entries = [...baseEntries, ...customEntries];
+  const known = new Set(entries.map((entry) => entry.key));
+  const orderedKeys = questionOrder.filter((key) => known.has(key));
+  const orderedEntries = orderedKeys.map((key) => entries.find((entry) => entry.key === key));
+  const remainingEntries = entries.filter((entry) => !orderedKeys.includes(entry.key));
+  return [...orderedEntries, ...remainingEntries];
 }
 
 function saveCustomQuestions() {
@@ -829,7 +866,8 @@ function saveBaseQuestionPersonalizations() {
 }
 
 function syncQuestions() {
-  questions = [...getVisibleBaseQuestions(), ...customQuestions];
+  orderedQuestionEntries = buildQuestionEntries();
+  questions = orderedQuestionEntries.map((entry) => entry.text);
   if (questions.length === 0) {
     const customQuestionToRestore = deletedCustomQuestions.shift();
     const questionToRestore = customQuestionToRestore || deletedBaseQuestions.pop();
@@ -840,7 +878,8 @@ function syncQuestions() {
       } else {
         saveBaseQuestionPersonalizations();
       }
-      questions = [...getVisibleBaseQuestions(), ...customQuestions];
+      orderedQuestionEntries = buildQuestionEntries();
+      questions = orderedQuestionEntries.map((entry) => entry.text);
     }
   }
   if (reservedQuestion && !questions.includes(reservedQuestion)) {
@@ -848,6 +887,30 @@ function syncQuestions() {
     reservedQuestionState.textContent = "예약 없음";
   }
   renderQuestionPicker();
+}
+
+function moveQuestionToFront(key) {
+  const order = orderedQuestionEntries.map((entry) => entry.key);
+  const index = order.indexOf(key);
+  if (index <= 0) return;
+  order.splice(index, 1);
+  order.unshift(key);
+  questionOrder = order;
+  saveQuestionOrder();
+  syncQuestions();
+  renderQuestionOrderList();
+}
+
+function moveQuestionStep(key, direction) {
+  const order = orderedQuestionEntries.map((entry) => entry.key);
+  const index = order.indexOf(key);
+  const targetIndex = index + direction;
+  if (index < 0 || targetIndex < 0 || targetIndex >= order.length) return;
+  [order[index], order[targetIndex]] = [order[targetIndex], order[index]];
+  questionOrder = order;
+  saveQuestionOrder();
+  syncQuestions();
+  renderQuestionOrderList();
 }
 
 function getVisibleBaseQuestions() {
@@ -918,11 +981,19 @@ function openCustomQuestionModal() {
         </div>
       </div>
     </form>
+    <section class="custom-question-section">
+      <div class="custom-question-section-header">
+        <h3>질문 순서</h3>
+        <span class="custom-question-status">연습할 때 나오는 번호 순서예요. 앞으로 옮기면 더 먼저 나와요.</span>
+      </div>
+      <div id="questionOrderList" class="custom-question-list"></div>
+    </section>
     <div id="customQuestionList" class="custom-question-list"></div>
   `;
   infoModal.hidden = false;
   closeModalBtn.focus();
   setupCustomQuestionForm();
+  renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
@@ -993,6 +1064,7 @@ function saveCustomQuestion(event) {
   saveCustomQuestions();
   syncQuestions();
   resetCustomQuestionForm(status.textContent);
+  renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
@@ -1014,6 +1086,30 @@ function resetCustomQuestionForm(message = "") {
   cancelEditBtn.hidden = true;
   status.textContent = message;
   status.classList.remove("is-error");
+}
+
+function renderQuestionOrderList() {
+  const container = document.querySelector("#questionOrderList");
+  if (!container) return;
+
+  container.innerHTML = orderedQuestionEntries.length
+    ? orderedQuestionEntries
+      .map((entry, index) => `
+        <article class="custom-question-item">
+          <div class="custom-question-item-header">
+            <span class="custom-question-badge">${index + 1}번</span>
+            <span class="custom-question-badge${entry.type === "custom" ? " is-custom" : ""}">${entry.type === "custom" ? "개인" : "기본"}</span>
+          </div>
+          <p>${escapeHtml(entry.text)}</p>
+          <div class="custom-question-item-actions">
+            <button class="mini-btn" type="button" data-move-question-top="${escapeHtml(entry.key)}" ${index === 0 ? "disabled" : ""}>맨 앞으로</button>
+            <button class="mini-btn" type="button" data-move-question-up="${escapeHtml(entry.key)}" ${index === 0 ? "disabled" : ""}>▲ 위로</button>
+            <button class="mini-btn" type="button" data-move-question-down="${escapeHtml(entry.key)}" ${index === orderedQuestionEntries.length - 1 ? "disabled" : ""}>▼ 아래로</button>
+          </div>
+        </article>
+      `)
+      .join("")
+    : `<p class="custom-question-empty">질문이 없습니다.</p>`;
 }
 
 function renderCustomQuestionList() {
@@ -1221,6 +1317,7 @@ async function deleteQuestion(type, key) {
   }
   syncQuestions();
   resetCustomQuestionForm("질문을 삭제했습니다.");
+  renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
@@ -1296,6 +1393,7 @@ async function deleteSelectedActiveQuestions() {
   saveCustomQuestions();
   syncQuestions();
   resetCustomQuestionForm(`${selectedCount}개 질문을 삭제했습니다.`);
+  renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
@@ -1307,6 +1405,7 @@ function restoreBaseQuestion(question) {
   saveBaseQuestionPersonalizations();
   syncQuestions();
   resetCustomQuestionForm("기본 질문을 복원했습니다.");
+  renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
@@ -1324,6 +1423,7 @@ function restoreCustomQuestion(index) {
   saveCustomQuestions();
   syncQuestions();
   resetCustomQuestionForm("개인 질문을 복원했습니다.");
+  renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
@@ -1371,6 +1471,7 @@ function restoreSelectedDeletedQuestions() {
 
   restoreDeletedQuestions(selectedQuestions.base, selectedQuestions.custom);
   resetCustomQuestionForm(`${selectedCount}개 질문을 복원했습니다.`);
+  renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
@@ -1948,6 +2049,24 @@ async function handleModalClick(event) {
   const deleteSelectedActiveQuestionsButton = event.target.closest("[data-delete-selected-active-questions]");
   if (deleteSelectedActiveQuestionsButton) {
     await deleteSelectedActiveQuestions();
+    return;
+  }
+
+  const moveQuestionTopButton = event.target.closest("[data-move-question-top]");
+  if (moveQuestionTopButton) {
+    moveQuestionToFront(moveQuestionTopButton.dataset.moveQuestionTop);
+    return;
+  }
+
+  const moveQuestionUpButton = event.target.closest("[data-move-question-up]");
+  if (moveQuestionUpButton) {
+    moveQuestionStep(moveQuestionUpButton.dataset.moveQuestionUp, -1);
+    return;
+  }
+
+  const moveQuestionDownButton = event.target.closest("[data-move-question-down]");
+  if (moveQuestionDownButton) {
+    moveQuestionStep(moveQuestionDownButton.dataset.moveQuestionDown, 1);
     return;
   }
 
