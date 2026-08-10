@@ -6,7 +6,7 @@
   <title>진로전담교사 면접 연습</title>
   <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
   <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
-  <link rel="stylesheet" href="style.css?v=20260802-2">
+  <link rel="stylesheet" href="style.css?v=20260810-1">
 </head>
 <body>
   <main class="app">
@@ -57,14 +57,24 @@
           <select id="questionPicker" class="question-picker"></select>
         </div>
 
-        <div class="status-panel">
-          <p class="section-label">진행 상태</p>
-          <ul class="check-list" id="environmentList">
-            <li data-check="camera">카메라 권한 확인 전</li>
-            <li data-check="microphone">마이크 권한 확인 전</li>
-            <li data-check="place">밝은 장소와 안정된 자세를 준비하세요.</li>
-          </ul>
-        </div>
+        <section class="controls" aria-label="연습 조작">
+          <button id="startBtn" class="primary-btn" type="button">시작</button>
+          <button id="skipBtn" class="secondary-btn" type="button" disabled>질문 건너뛰기</button>
+          <button id="retryBtn" class="secondary-btn" type="button" disabled>다시 시작</button>
+          <button id="deviceCheckBtn" class="secondary-btn" type="button">응시 환경 체크</button>
+
+          <div id="envStatusPopover" class="env-popover" hidden>
+            <div class="env-popover-header">
+              <p class="section-label">진행 상태</p>
+              <button id="envPopoverCloseBtn" class="env-popover-close" type="button" aria-label="닫기">×</button>
+            </div>
+            <ul class="check-list" id="environmentList">
+              <li data-check="camera">카메라 권한 확인 전</li>
+              <li data-check="microphone">마이크 권한 확인 전</li>
+              <li data-check="place">밝은 장소와 안정된 자세를 준비하세요.</li>
+            </ul>
+          </div>
+        </section>
       </article>
 
       <section class="question-box placeholder-question" aria-live="polite">
@@ -91,13 +101,6 @@
           <div id="progressBar" class="progress-bar"></div>
         </div>
       </article>
-
-      <section class="controls" aria-label="연습 조작">
-        <button id="startBtn" class="primary-btn" type="button">시작</button>
-        <button id="skipBtn" class="secondary-btn" type="button" disabled>질문 건너뛰기</button>
-        <button id="retryBtn" class="secondary-btn" type="button" disabled>다시 시작</button>
-        <button id="deviceCheckBtn" class="secondary-btn" type="button">응시 환경 체크</button>
-      </section>
 
       <section class="result-box answer-result" aria-labelledby="result-title">
         <div class="result-header">
@@ -171,6 +174,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="main.js?v=20260802-3"></script>
+  <script src="main.js?v=20260810-1"></script>
 </body>
 </html>

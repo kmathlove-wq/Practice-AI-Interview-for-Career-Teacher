@@ -91,6 +91,7 @@ startPractice()
   `resetResult()`를 호출해야 건너뛴/재시도한 답변의 피드백이 먼저 렌더링된다.
 - HTTPS가 아니면 카메라/마이크가 안 될 수 있으므로 `getMediaSupportMessage()` 메시지를 유지한다.
 - 사용자 답변 영상/오디오는 서버에 업로드하지 않는다. 브라우저 메모리의 Object URL로만 재생한다.
+- 진행 상태 팝업(`#envStatusPopover`, `position:fixed`)은 `checkEnvironment()`/`attachPreview()` 호출 시 `positionEnvPopover()`로 `#deviceCheckBtn` 옆에 열리고 `#envPopoverCloseBtn`(X)로만 닫힌다.
 
 ### 버튼 동작
 
@@ -99,7 +100,7 @@ startPractice()
 | 시작 / 새 질문 시작 | 새 질문 선택 후 준비 타이머 시작 |
 | 질문 건너뛰기 | 현재 녹화/타이머를 멈추고 다른 질문으로 진행 |
 | 다시 시작 | 답변 시작 후 20초 이내 또는 답변 종료 후, 준비시간 없이 같은 질문 재시작 |
-| 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인 |
+| 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인, `#envStatusPopover` 진행 상태 팝업 열림 |
 | 질문 추가 | 기본/개인 질문을 개인 설정으로 추가·수정·삭제 |
 | 무작위 | 예약 질문 해제 |
 | 개선사항 | Supabase 개선사항 모달 열기 |
@@ -123,19 +124,18 @@ startPractice()
 
 레이아웃 참고 원본: `C:\Users\kmath\Downloads\interview_layout_redesign.html` (정적 목업, 실제 동작 없음).
 데스크톱(≥900px)은 `.practice-panel`이 `grid-template-areas: "top top top" / "nav question result"
-/ "nav stage result" / "nav controls result"`로 배치한다. 900px 미만은 일반 블록 스택이라
-DOM 순서가 곧 화면 순서다.
+/ "nav stage result"`로 배치한다(2026-08-10, controls를 nav-panel 안으로 옮기며 controls 행 제거).
+900px 미만은 일반 블록 스택이라 DOM 순서가 곧 화면 순서다.
 
 ```
 .top-bar            → 로고/제목/상태 표시
 .top-actions        → #openImprovementsBtn, #phaseLabel
-.nav-panel           → grid-area:nav. 안에 .timer-card(원형 타이머), .order-panel, .status-panel 포함
+.nav-panel           → grid-area:nav. 안에 .timer-card(원형 타이머), .order-panel, .controls 포함
 .timer-card          → #timerRing(SVG 원형 진행률), #timerText, #timerTitle
 .order-panel          → #reservedQuestionState, #openCustomQuestionBtn, #randomQuestionBtn, #questionPicker
-.status-panel         → #environmentList
 .question-box       → grid-area:question. #questionText
 .stage-panel         → grid-area:stage. .stage(#cameraState 배지, #cameraPreview, #cameraPlaceholder) + #progressBar
-.controls           → grid-area:controls. 시작, 건너뛰기, 다시 시작, 환경 체크
+.controls           → 시작, 건너뛰기, 다시 시작, 환경 체크, #envStatusPopover. margin-top:auto로 nav-panel 맨 아래에 고정
 .answer-result      → grid-area:result. 결과 버튼, 미디어 플레이어, transcript, feedback
 .sr-only            → #answerGuide/#practiceHistory/#historyCount 값만 유지, 가이드/기록 모달이 innerHTML 복사
 #infoModal          → 가이드/기록/개선사항 모달

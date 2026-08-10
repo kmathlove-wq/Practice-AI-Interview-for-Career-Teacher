@@ -51,6 +51,8 @@ const audioPlayer = document.querySelector("#audioPlayer");
 const transcriptText = document.querySelector("#transcriptText");
 const answerGuide = document.querySelector("#answerGuide");
 const environmentList = document.querySelector("#environmentList");
+const envPopover = document.querySelector("#envStatusPopover");
+const envPopoverCloseBtn = document.querySelector("#envPopoverCloseBtn");
 const feedbackBox = document.querySelector("#feedbackBox");
 const practiceHistory = document.querySelector("#practiceHistory");
 const historyCount = document.querySelector("#historyCount");
@@ -124,6 +126,7 @@ function init() {
   skipBtn.addEventListener("click", skipQuestion);
   retryBtn.addEventListener("click", retryCurrentQuestion);
   deviceCheckBtn.addEventListener("click", checkEnvironment);
+  envPopoverCloseBtn.addEventListener("click", hideEnvPopover);
   questionPicker.addEventListener("change", reserveSelectedQuestion);
   openCustomQuestionBtn.addEventListener("click", openCustomQuestionModal);
   randomQuestionBtn.addEventListener("click", clearReservedQuestion);
@@ -595,7 +598,40 @@ function updateRetryAvailability() {
   retryBtn.disabled = !canRetryEarly && !canRetryAfterAnswer;
 }
 
+function showEnvPopover() {
+  envPopover.hidden = false;
+  positionEnvPopover();
+}
+
+function hideEnvPopover() {
+  envPopover.hidden = true;
+}
+
+function positionEnvPopover() {
+  const margin = 12;
+  const btnRect = deviceCheckBtn.getBoundingClientRect();
+  const popoverRect = envPopover.getBoundingClientRect();
+
+  let left = btnRect.right + margin;
+  let top = btnRect.top;
+
+  if (left + popoverRect.width > window.innerWidth - margin) {
+    left = btnRect.left - popoverRect.width - margin;
+  }
+  if (left < margin) {
+    left = Math.max(margin, btnRect.left);
+    top = btnRect.top - popoverRect.height - margin;
+  }
+  top = Math.min(top, window.innerHeight - popoverRect.height - margin);
+  top = Math.max(top, margin);
+
+  envPopover.style.left = `${left}px`;
+  envPopover.style.top = `${top}px`;
+}
+
 async function checkEnvironment() {
+  showEnvPopover();
+
   if (!navigator.mediaDevices?.getUserMedia) {
     const message = getMediaSupportMessage("카메라와 마이크 확인");
     updateEnvironmentItem("camera", message, false);
@@ -626,6 +662,8 @@ async function checkEnvironment() {
 }
 
 function attachPreview(stream) {
+  showEnvPopover();
+
   if (stream.getVideoTracks().length === 0) return;
 
   cameraPreview.srcObject = stream;

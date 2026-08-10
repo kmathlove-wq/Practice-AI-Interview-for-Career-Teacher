@@ -208,6 +208,47 @@ h1 {
   margin-top: 28px;
 }
 
+/* 응시 환경 체크 버튼 옆에 뜨는 진행 상태 팝업. 위치는 JS(positionEnvPopover)가 정한다. */
+.env-popover {
+  position: fixed;
+  width: min(280px, 90vw);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
+  z-index: 50;
+}
+
+.env-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.env-popover-header .section-label {
+  margin: 0;
+}
+
+.env-popover-close {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.env-popover-close:hover {
+  color: var(--primary);
+}
+
+.env-popover .check-list {
+  margin-top: 12px;
+}
+
 .primary-btn,
 .secondary-btn {
   min-height: 52px;
@@ -369,10 +410,6 @@ button:disabled {
   padding-top: 18px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 18px;
-}
-
-.status-panel {
-  padding-top: 18px;
 }
 
 .result-actions {
@@ -1456,12 +1493,11 @@ audio {
     min-height: 0;
     display: grid;
     grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.3fr) minmax(260px, 0.85fr);
-    grid-template-rows: auto minmax(0, 0.5fr) minmax(220px, 1.85fr) minmax(96px, 0.32fr);
+    grid-template-rows: auto minmax(0, 0.5fr) minmax(260px, 2.17fr);
     grid-template-areas:
       "top top top"
       "nav question result"
-      "nav stage result"
-      "nav controls result";
+      "nav stage result";
     column-gap: 14px;
     row-gap: 8px;
     padding: 18px;
@@ -1496,8 +1532,7 @@ audio {
   }
 
   .question-box,
-  .result-box,
-  .controls {
+  .result-box {
     margin-top: 0;
   }
 
@@ -1563,8 +1598,7 @@ audio {
   }
 
   .controls {
-    grid-area: controls;
-    align-self: stretch;
+    margin-top: auto;
     display: grid;
     grid-template-columns: repeat(2, minmax(128px, 1fr));
     gap: 8px;
@@ -1700,7 +1734,7 @@ audio {
 @media (min-width: 900px) and (max-width: 1180px) {
   .practice-panel {
     grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.2fr) minmax(220px, 0.8fr);
-    grid-template-rows: auto minmax(0, 0.5fr) minmax(180px, 1.65fr) minmax(90px, 0.35fr);
+    grid-template-rows: auto minmax(0, 0.5fr) minmax(220px, 2fr);
   }
 
   .timer-ring-wrap {
