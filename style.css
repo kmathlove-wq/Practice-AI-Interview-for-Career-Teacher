@@ -1916,3 +1916,46 @@ audio {
 .confirm-topic-wrap .topic-rename-input[hidden] {
   display: none;
 }
+
+/* 답변 시간 고르기 (1분 30초 / 2분) */
+.duration-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  padding: 3px;
+  gap: 2px;
+}
+
+.duration-btn {
+  min-height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.duration-btn.is-active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.duration-btn:not(.is-active):not(:disabled):hover {
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.duration-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.duration-btn:focus-visible {
+  outline: 2px solid rgba(23, 107, 135, 0.45);
+  outline-offset: 1px;
+}

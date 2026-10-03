@@ -76,7 +76,10 @@ const FALLBACK_QUESTIONS = [
 ];
 
 const PREP_SECONDS = 10;
-const ANSWER_SECONDS = 90;
+const ANSWER_SECONDS_OPTIONS = [90, 120];
+const DEFAULT_ANSWER_SECONDS = 90;
+const RETRY_EARLY_WINDOW_SECONDS = 20;
+const ANSWER_DURATION_KEY = "practiceInterviewAnswerSeconds";
 const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
 const CUSTOM_QUESTIONS_KEY = "practiceInterviewCustomQuestions";
 const DELETED_CUSTOM_QUESTIONS_KEY = "practiceInterviewDeletedCustomQuestions";
@@ -108,6 +111,7 @@ const timerTitle = document.querySelector("#timerTitle");
 const timerText = document.querySelector("#timerText");
 const progressBar = document.querySelector("#progressBar");
 const timerRing = document.querySelector("#timerRing");
+const answerDurationToggle = document.querySelector("#answerDurationToggle");
 const startBtn = document.querySelector("#startBtn");
 const skipBtn = document.querySelector("#skipBtn");
 const retryBtn = document.querySelector("#retryBtn");
@@ -191,6 +195,7 @@ let answerStartedAt = 0;
 let isVideoRecording = false;
 let reservedQuestion = "";
 let currentTimerRemaining = 0;
+let answerSeconds = DEFAULT_ANSWER_SECONDS;
 let activeConfirmDialog = null;
 let improvementRefreshTimerId = null;
 let improvementRealtimeChannel = null;
@@ -206,6 +211,9 @@ function init() {
   syncQuestions();
   loadQuestionsFromTextFile();
   renderPracticeHistory();
+  loadAnswerDuration();
+  renderAnswerDurationButtons();
+  answerDurationToggle.addEventListener("click", selectAnswerDuration);
   startBtn.addEventListener("click", startPractice);
   skipBtn.addEventListener("click", skipQuestion);
   retryBtn.addEventListener("click", retryCurrentQuestion);
@@ -400,7 +408,7 @@ function showNoEnabledQuestionMessage() {
 }
 
 async function retryCurrentQuestion() {
-  const canRetryEarly = phase === "answer" && currentTimerRemaining > ANSWER_SECONDS - 20;
+  const canRetryEarly = phase === "answer" && currentTimerRemaining > answerSeconds - RETRY_EARLY_WINDOW_SECONDS;
   const canRetryAfterAnswer = phase === "done";
   if ((!canRetryEarly && !canRetryAfterAnswer) || !currentQuestion) return;
 
@@ -436,7 +444,7 @@ async function runAnswerPhase() {
   }
 
   setPhase("answer");
-  await runTimer(ANSWER_SECONDS, "답변 시간");
+  await runTimer(answerSeconds, "답변 시간");
 
   if (phase === "answer") {
     finishAnswer();
@@ -724,10 +732,44 @@ function setPhase(nextPhase) {
 
   phaseLabel.textContent = labels[nextPhase] || labels.idle;
   updateRetryAvailability();
+  renderAnswerDurationButtons();
+}
+
+function loadAnswerDuration() {
+  try {
+    const saved = Number(localStorage.getItem(ANSWER_DURATION_KEY));
+    answerSeconds = ANSWER_SECONDS_OPTIONS.includes(saved) ? saved : DEFAULT_ANSWER_SECONDS;
+  } catch {
+    answerSeconds = DEFAULT_ANSWER_SECONDS;
+  }
+}
+
+// 준비·답변 중에 시간이 바뀌면 헷갈리므로, 그때는 버튼을 잠근다.
+function renderAnswerDurationButtons() {
+  const isLocked = phase === "prep" || phase === "answer";
+  answerDurationToggle.querySelectorAll("[data-answer-seconds]").forEach((button) => {
+    const isActive = Number(button.dataset.answerSeconds) === answerSeconds;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+    button.disabled = isLocked;
+  });
+}
+
+function selectAnswerDuration(event) {
+  const button = event.target.closest("[data-answer-seconds]");
+  if (!button || phase === "prep" || phase === "answer") return;
+
+  answerSeconds = Number(button.dataset.answerSeconds);
+  try {
+    localStorage.setItem(ANSWER_DURATION_KEY, String(answerSeconds));
+  } catch {
+    // 저장이 안 되는 브라우저에서도 이번 연습에는 고른 시간이 적용된다.
+  }
+  renderAnswerDurationButtons();
 }
 
 function updateRetryAvailability() {
-  const canRetryEarly = phase === "answer" && currentTimerRemaining > ANSWER_SECONDS - 20;
+  const canRetryEarly = phase === "answer" && currentTimerRemaining > answerSeconds - RETRY_EARLY_WINDOW_SECONDS;
   const canRetryAfterAnswer = phase === "done" && Boolean(currentQuestion);
   retryBtn.disabled = !canRetryEarly && !canRetryAfterAnswer;
 }
@@ -864,7 +906,7 @@ function getQuestionKeywords(question) {
 
 function renderFeedback() {
   const cleanText = transcript.trim();
-  const elapsedSeconds = answerStartedAt ? Math.round((Date.now() - answerStartedAt) / 1000) : ANSWER_SECONDS;
+  const elapsedSeconds = answerStartedAt ? Math.round((Date.now() - answerStartedAt) / 1000) : answerSeconds;
   const words = cleanText ? cleanText.split(/\s+/).filter(Boolean) : [];
   const fillerCount = (cleanText.match(/음|어|그|저기|약간|뭔가/g) || []).length;
   const keywords = getQuestionKeywords(currentQuestion);
