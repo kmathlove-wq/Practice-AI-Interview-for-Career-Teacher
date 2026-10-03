@@ -361,7 +361,7 @@ async function skipQuestion() {
   stopCurrentTimer();
   await stopActiveRecording();
   if (!reservedQuestion && enabledQuestions.length === 0) {
-    finishPractice("켜진 질문이 없어요. '주제 선택'에서 질문을 켜 주세요.");
+    finishPractice("질문 없음");
     showNoEnabledQuestionMessage();
     return;
   }
@@ -370,8 +370,12 @@ async function skipQuestion() {
   await runCurrentQuestion();
 }
 
+// 시계 가운데 글자 자리는 좁아서 짧은 말만 넣고, 긴 안내는 넓은 질문 칸에 흐린 글씨로 보여 준다.
 function showNoEnabledQuestionMessage() {
-  timerTitle.textContent = "켜진 질문이 없어요. '주제 선택'에서 질문을 켜 주세요.";
+  timerTitle.textContent = "질문 없음";
+  questionText.textContent = "켜진 질문이 없어요. '주제 선택'에서 질문을 켜 주세요.";
+  questionBox.classList.remove("long-question", "very-long-question");
+  questionBox.classList.add("placeholder-question");
 }
 
 async function retryCurrentQuestion() {
@@ -574,7 +578,7 @@ function finishAnswer() {
   stopCurrentTimer();
   setPhase("done");
   stopActiveRecording();
-  finishPractice("답변이 종료되었습니다. 녹음 결과를 확인해 주세요.");
+  finishPractice("답변 종료");
 }
 
 function finishPractice(message) {
