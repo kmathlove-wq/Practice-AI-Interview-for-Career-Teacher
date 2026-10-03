@@ -1848,3 +1848,59 @@ audio {
   font-size: 14px;
   line-height: 1.5;
 }
+
+.topic-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.topic-rename-form {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.topic-rename-input {
+  flex: 1 1 180px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 0 12px;
+  font: inherit;
+}
+
+.topic-rename-input:focus {
+  outline: 2px solid rgba(23, 107, 135, 0.35);
+  border-color: var(--primary);
+}
+
+/* 질문 관리: 주제 고르기 */
+.custom-question-topic-row {
+  display: grid;
+  gap: 8px;
+}
+
+.custom-question-topic-select {
+  margin-top: 0;
+}
+
+.custom-question-topic-row .topic-rename-input[hidden] {
+  display: none;
+}
+
+.custom-question-badge.is-topic {
+  border-color: rgba(23, 107, 135, 0.22);
+  background: var(--primary-tint);
+  color: var(--primary);
+}
+
+.custom-question-badge.is-no-topic {
+  border-style: dashed;
+  color: var(--muted);
+}

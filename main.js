@@ -85,8 +85,13 @@ const DELETED_BASE_QUESTIONS_KEY = "practiceInterviewDeletedBaseQuestions";
 const QUESTION_ORDER_KEY = "practiceInterviewQuestionOrder";
 const DISABLED_TOPICS_KEY = "practiceInterviewDisabledTopics";
 const DISABLED_QUESTIONS_KEY = "practiceInterviewDisabledQuestions";
+const CUSTOM_QUESTION_TOPICS_KEY = "practiceInterviewCustomQuestionTopics";
+const BASE_QUESTION_TOPIC_EDITS_KEY = "practiceInterviewBaseQuestionTopicEdits";
+const TOPIC_RENAMES_KEY = "practiceInterviewTopicRenames";
 const DEFAULT_TOPIC = "기본 질문";
 const CUSTOM_TOPIC = "개인 질문";
+const NO_TOPIC = "주제 없음";
+const NEW_TOPIC_VALUE = "__new_topic__";
 const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
@@ -159,6 +164,10 @@ let baseQuestionTopics = {};
 let disabledTopics = [];
 let disabledQuestionKeys = [];
 let expandedTopicNames = new Set();
+let customQuestionTopics = {};
+let baseQuestionTopicEdits = {};
+let topicRenames = {};
+let renamingTopic = "";
 let questions = [...baseQuestions];
 let enabledQuestions = [...baseQuestions];
 let currentQuestion = "";
@@ -201,6 +210,7 @@ function init() {
   openCustomQuestionBtn.addEventListener("click", openCustomQuestionModal);
   openTopicFilterBtn.addEventListener("click", openTopicFilterModal);
   modalBody.addEventListener("change", handleTopicFilterChange);
+  modalBody.addEventListener("submit", handleTopicRenameSubmit);
   randomQuestionBtn.addEventListener("click", clearReservedQuestion);
   openImprovementsBtn.addEventListener("click", openImprovementsModal);
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
@@ -983,6 +993,10 @@ function loadQuestionPersonalizations() {
     disabledQuestionKeys = [];
   }
 
+  customQuestionTopics = readStoredStringMap(CUSTOM_QUESTION_TOPICS_KEY);
+  baseQuestionTopicEdits = readStoredStringMap(BASE_QUESTION_TOPIC_EDITS_KEY);
+  topicRenames = readStoredStringMap(TOPIC_RENAMES_KEY);
+
   try {
     const savedOrder = JSON.parse(localStorage.getItem(QUESTION_ORDER_KEY) || "[]");
     questionOrder = Array.isArray(savedOrder) ? savedOrder.map((key) => String(key)) : [];
@@ -1004,13 +1018,13 @@ function buildQuestionEntries() {
     key: `base:${original}`,
     text: baseQuestionEdits[original] || original,
     type: "base",
-    topic: baseQuestionTopics[original] || DEFAULT_TOPIC
+    topic: getBaseQuestionTopic(original)
   }));
   const customEntries = customQuestions.map((question) => ({
     key: `custom:${question}`,
     text: question,
     type: "custom",
-    topic: CUSTOM_TOPIC
+    topic: getCustomQuestionTopic(question)
   }));
   const entries = [...baseEntries, ...customEntries];
   const known = new Set(entries.map((entry) => entry.key));
@@ -1018,6 +1032,57 @@ function buildQuestionEntries() {
   const orderedEntries = orderedKeys.map((key) => entries.find((entry) => entry.key === key));
   const remainingEntries = entries.filter((entry) => !orderedKeys.includes(entry.key));
   return [...orderedEntries, ...remainingEntries];
+}
+
+function readStoredStringMap(key) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || "{}");
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+    return Object.fromEntries(
+      Object.entries(saved)
+        .map(([mapKey, value]) => [String(mapKey), String(value).trim()])
+        .filter(([, value]) => value)
+    );
+  } catch {
+    return {};
+  }
+}
+
+// 주제 이름은 세 겹으로 정해진다.
+// ① 질문 파일의 원래 주제(또는 '개인 질문') → ② 주제 이름 바꾸기(topicRenames) → ③ 질문마다 직접 고른 주제.
+function resolveTopicName(rawTopic) {
+  return topicRenames[rawTopic] || rawTopic;
+}
+
+function getBaseFileTopic(originalQuestion) {
+  return resolveTopicName(baseQuestionTopics[originalQuestion] || DEFAULT_TOPIC);
+}
+
+function getBaseQuestionTopic(originalQuestion) {
+  return baseQuestionTopicEdits[originalQuestion] || getBaseFileTopic(originalQuestion);
+}
+
+function getDefaultCustomTopic() {
+  return resolveTopicName(CUSTOM_TOPIC);
+}
+
+function getCustomQuestionTopic(question) {
+  return customQuestionTopics[question] || getDefaultCustomTopic();
+}
+
+// 질문 파일의 주제를 파일 순서대로 먼저, 직접 만든 주제를 그다음, '개인 질문'과 '주제 없음'을 맨 뒤에 둔다.
+function getTopicNameOrder() {
+  const defaultCustomTopic = getDefaultCustomTopic();
+  const fileTopics = [...new Set(baseQuestions.map(getBaseFileTopic))];
+  const usedTopics = [...new Set(orderedQuestionEntries.map((entry) => entry.topic))];
+  const createdTopics = usedTopics.filter((topic) => !fileTopics.includes(topic) && topic !== defaultCustomTopic && topic !== NO_TOPIC);
+  return [...new Set([...fileTopics, ...createdTopics, defaultCustomTopic, NO_TOPIC])];
+}
+
+function saveTopicSettings() {
+  localStorage.setItem(CUSTOM_QUESTION_TOPICS_KEY, JSON.stringify(customQuestionTopics));
+  localStorage.setItem(BASE_QUESTION_TOPIC_EDITS_KEY, JSON.stringify(baseQuestionTopicEdits));
+  localStorage.setItem(TOPIC_RENAMES_KEY, JSON.stringify(topicRenames));
 }
 
 function saveCustomQuestions() {
@@ -1072,15 +1137,14 @@ function getTopicGroups() {
     if (!groups.has(entry.topic)) groups.set(entry.topic, []);
     groups.get(entry.topic).push(entry);
   });
-  // 주제 순서는 질문 파일에 적힌 순서를 따르고, 개인 질문은 맨 뒤에 둔다.
-  const fileTopicOrder = [...new Set(baseQuestions.map((question) => baseQuestionTopics[question] || DEFAULT_TOPIC)), CUSTOM_TOPIC];
-  return [...groups.entries()]
-    .sort(([topicA], [topicB]) => fileTopicOrder.indexOf(topicA) - fileTopicOrder.indexOf(topicB))
-    .map(([topic, entries]) => ({ topic, entries }));
+  return getTopicNameOrder()
+    .filter((topic) => groups.has(topic))
+    .map((topic) => ({ topic, entries: groups.get(topic) }));
 }
 
 function openTopicFilterModal() {
   stopImprovementAutoRefresh();
+  renamingTopic = "";
   modalTitle.textContent = "주제 선택";
   modalBody.innerHTML = `
     <p class="topic-filter-help">켜진 주제의 켜진 질문에서만 무작위로 나와요.</p>
@@ -1110,16 +1174,28 @@ function renderTopicFilterList() {
       const isTopicOn = !disabledTopics.includes(topic);
       const isOpen = expandedTopicNames.has(topic);
       const onCount = entries.filter((entry) => !disabledQuestionKeys.includes(entry.key)).length;
-      return `
-        <section class="topic-filter-group${isTopicOn ? "" : " is-off"}">
-          <div class="topic-filter-header">
-            <label class="topic-filter-label">
-              <input type="checkbox" data-topic-checkbox="${escapeHtml(topic)}" data-partial="${onCount > 0 && onCount < entries.length}" ${isTopicOn ? "checked" : ""}>
-              <strong>${escapeHtml(topic)}</strong>
-              <span class="topic-filter-count">${onCount}/${entries.length}</span>
-            </label>
+      const headerHtml = renamingTopic === topic
+        ? `
+          <form class="topic-rename-form" data-topic-rename-form="${escapeHtml(topic)}">
+            <input class="topic-rename-input" type="text" maxlength="40" value="${escapeHtml(topic)}" aria-label="새 주제 이름" required>
+            <button class="mini-btn" type="submit">저장</button>
+            <button class="mini-btn" type="button" data-cancel-topic-rename>취소</button>
+          </form>
+        `
+        : `
+          <label class="topic-filter-label">
+            <input type="checkbox" data-topic-checkbox="${escapeHtml(topic)}" data-partial="${onCount > 0 && onCount < entries.length}" ${isTopicOn ? "checked" : ""}>
+            <strong>${escapeHtml(topic)}</strong>
+            <span class="topic-filter-count">${onCount}/${entries.length}</span>
+          </label>
+          <div class="topic-filter-actions">
+            ${topic === NO_TOPIC ? "" : `<button class="mini-btn" type="button" data-rename-topic="${escapeHtml(topic)}">이름 바꾸기</button>`}
             <button class="mini-btn" type="button" data-toggle-topic-questions="${escapeHtml(topic)}">${isOpen ? "질문 접기 ▴" : "질문 보기 ▾"}</button>
           </div>
+        `;
+      return `
+        <section class="topic-filter-group${isTopicOn ? "" : " is-off"}">
+          <div class="topic-filter-header">${headerHtml}</div>
           ${isOpen ? `
             <ul class="topic-question-list">
               ${entries.map((entry) => `
@@ -1141,6 +1217,59 @@ function renderTopicFilterList() {
   list.querySelectorAll("[data-topic-checkbox]").forEach((checkbox) => {
     checkbox.indeterminate = checkbox.checked && checkbox.dataset.partial === "true";
   });
+
+  const renameInput = list.querySelector(".topic-rename-input");
+  if (renameInput) {
+    renameInput.focus();
+    renameInput.select();
+  }
+}
+
+function handleTopicRenameSubmit(event) {
+  const form = event.target.closest("[data-topic-rename-form]");
+  if (!form) return;
+
+  event.preventDefault();
+  const input = form.querySelector(".topic-rename-input");
+  renameTopic(form.dataset.topicRenameForm, input ? input.value : "");
+}
+
+// 이미 있는 주제 이름으로 바꾸면 두 주제가 하나로 합쳐진다.
+function renameTopic(oldName, newNameInput) {
+  const newName = newNameInput.replace(/\s+/g, " ").trim();
+  renamingTopic = "";
+  if (!newName || newName === oldName) {
+    renderTopicFilterList();
+    return;
+  }
+
+  const rawTopics = new Set([
+    ...Object.values(baseQuestionTopics),
+    ...Object.keys(topicRenames),
+    DEFAULT_TOPIC,
+    CUSTOM_TOPIC
+  ]);
+  rawTopics.forEach((rawTopic) => {
+    if (resolveTopicName(rawTopic) !== oldName) return;
+    if (rawTopic === newName) {
+      delete topicRenames[rawTopic];
+    } else {
+      topicRenames[rawTopic] = newName;
+    }
+  });
+  [customQuestionTopics, baseQuestionTopicEdits].forEach((topicMap) => {
+    Object.keys(topicMap).forEach((key) => {
+      if (topicMap[key] === oldName) topicMap[key] = newName;
+    });
+  });
+
+  const wasDisabled = disabledTopics.includes(oldName);
+  disabledTopics = disabledTopics.filter((topic) => topic !== oldName);
+  if (wasDisabled && !disabledTopics.includes(newName)) disabledTopics.push(newName);
+  if (expandedTopicNames.delete(oldName)) expandedTopicNames.add(newName);
+
+  saveTopicSettings();
+  applyTopicFilterChange();
 }
 
 function handleTopicFilterChange(event) {
@@ -1262,6 +1391,11 @@ function openCustomQuestionModal() {
       <input id="customQuestionEditKey" type="hidden">
       <label class="custom-question-label" for="customQuestionInput">질문 입력</label>
       <textarea id="customQuestionInput" class="custom-question-input" rows="4" maxlength="400" placeholder="연습하고 싶은 질문을 입력하세요." required></textarea>
+      <div class="custom-question-topic-row">
+        <label class="custom-question-label" for="customQuestionTopic">주제</label>
+        <select id="customQuestionTopic" class="question-picker custom-question-topic-select"></select>
+        <input id="customQuestionNewTopic" class="topic-rename-input" type="text" maxlength="40" placeholder="새 주제 이름을 입력하세요" aria-label="새 주제 이름" hidden>
+      </div>
       <div class="custom-question-form-actions">
         <p id="customQuestionStatus" class="custom-question-status" aria-live="polite"></p>
         <div class="custom-question-buttons">
@@ -1292,7 +1426,46 @@ function setupCustomQuestionForm() {
   if (!form || !cancelEditBtn) return;
 
   form.addEventListener("submit", saveCustomQuestion);
-  cancelEditBtn.addEventListener("click", resetCustomQuestionForm);
+  cancelEditBtn.addEventListener("click", () => resetCustomQuestionForm());
+  document.querySelector("#customQuestionTopic")?.addEventListener("change", updateNewTopicInputVisibility);
+  renderCustomQuestionTopicOptions(getDefaultCustomTopic());
+}
+
+function renderCustomQuestionTopicOptions(selectedTopic) {
+  const select = document.querySelector("#customQuestionTopic");
+  if (!select) return;
+
+  const topics = getTopicNameOrder();
+  if (selectedTopic && !topics.includes(selectedTopic)) topics.push(selectedTopic);
+  select.innerHTML = `
+    ${topics.map((topic) => `<option value="${escapeHtml(topic)}">${escapeHtml(topic)}</option>`).join("")}
+    <option value="${NEW_TOPIC_VALUE}">＋ 새 주제 만들기</option>
+  `;
+  select.value = selectedTopic || getDefaultCustomTopic();
+  updateNewTopicInputVisibility();
+}
+
+function updateNewTopicInputVisibility() {
+  const select = document.querySelector("#customQuestionTopic");
+  const newTopicInput = document.querySelector("#customQuestionNewTopic");
+  if (!select || !newTopicInput) return;
+
+  const isNewTopic = select.value === NEW_TOPIC_VALUE;
+  newTopicInput.hidden = !isNewTopic;
+  if (isNewTopic) {
+    newTopicInput.focus();
+  } else {
+    newTopicInput.value = "";
+  }
+}
+
+// 고른 주제 이름을 돌려준다. '새 주제 만들기'인데 이름이 비어 있으면 빈 문자열.
+function getSelectedFormTopic() {
+  const select = document.querySelector("#customQuestionTopic");
+  const newTopicInput = document.querySelector("#customQuestionNewTopic");
+  if (!select) return getDefaultCustomTopic();
+  if (select.value !== NEW_TOPIC_VALUE) return select.value;
+  return newTopicInput ? newTopicInput.value.replace(/\s+/g, " ").trim() : "";
 }
 
 function saveCustomQuestion(event) {
@@ -1323,12 +1496,25 @@ function saveCustomQuestion(event) {
     return;
   }
 
+  const topic = getSelectedFormTopic();
+  if (!topic) {
+    status.textContent = "새 주제 이름을 입력해 주세요.";
+    status.classList.add("is-error");
+    document.querySelector("#customQuestionNewTopic")?.focus();
+    return;
+  }
+
   if (editType === "base" && baseQuestions.includes(editKey)) {
     const previousQuestion = baseQuestionEdits[editKey] || editKey;
     if (question === editKey) {
       delete baseQuestionEdits[editKey];
     } else {
       baseQuestionEdits[editKey] = question;
+    }
+    if (topic === getBaseFileTopic(editKey)) {
+      delete baseQuestionTopicEdits[editKey];
+    } else {
+      baseQuestionTopicEdits[editKey] = topic;
     }
     if (reservedQuestion === previousQuestion) {
       reservedQuestion = question;
@@ -1339,6 +1525,8 @@ function saveCustomQuestion(event) {
   } else if (editType === "custom" && editIndex >= 0 && customQuestions[editIndex]) {
     const previousQuestion = customQuestions[editIndex];
     customQuestions[editIndex] = question;
+    delete customQuestionTopics[previousQuestion];
+    customQuestionTopics[question] = topic;
     if (reservedQuestion === previousQuestion) {
       reservedQuestion = question;
       reservedQuestionState.textContent = "예약됨";
@@ -1346,18 +1534,26 @@ function saveCustomQuestion(event) {
     status.textContent = "질문을 수정했습니다.";
   } else {
     customQuestions.unshift(question);
+    customQuestionTopics[question] = topic;
     status.textContent = "질문을 추가했습니다.";
   }
 
+  if (disabledTopics.includes(topic)) {
+    status.textContent += ` '${topic}' 주제는 지금 꺼져 있어서 무작위로 나오지 않아요.`;
+  }
+
   status.classList.remove("is-error");
+  saveTopicSettings();
   saveCustomQuestions();
   syncQuestions();
-  resetCustomQuestionForm(status.textContent);
+  // 같은 주제에 질문을 이어서 넣기 편하도록 방금 고른 주제를 그대로 둔다.
+  resetCustomQuestionForm(status.textContent, topic);
   renderQuestionOrderList();
   renderCustomQuestionList();
 }
 
-function resetCustomQuestionForm(message = "") {
+function resetCustomQuestionForm(message = "", topic = getDefaultCustomTopic()) {
+  renderCustomQuestionTopicOptions(topic);
   const input = document.querySelector("#customQuestionInput");
   const editTypeInput = document.querySelector("#customQuestionEditType");
   const editIndexInput = document.querySelector("#customQuestionEditIndex");
@@ -1422,6 +1618,10 @@ function renderQuestionOrderList() {
     : `<p class="custom-question-empty">질문이 없습니다.</p>`;
 }
 
+function renderTopicBadge(topic) {
+  return `<span class="custom-question-badge ${topic === NO_TOPIC ? "is-no-topic" : "is-topic"}">${escapeHtml(topic)}</span>`;
+}
+
 function renderCustomQuestionList() {
   const list = document.querySelector("#customQuestionList");
   if (!list) return;
@@ -1459,6 +1659,7 @@ function renderCustomQuestionList() {
           </label>
           <div class="custom-question-item-header">
             <span class="custom-question-badge">기본</span>
+            ${renderTopicBadge(getBaseQuestionTopic(item.originalQuestion))}
             ${item.isEdited ? `<span class="custom-question-badge is-edited">수정됨</span>` : ""}
           </div>
           <p>${escapeHtml(item.question)}</p>
@@ -1503,6 +1704,7 @@ function renderCustomQuestionList() {
         </label>
         <div class="custom-question-item-header">
           <span class="custom-question-badge is-custom">개인</span>
+          ${renderTopicBadge(getCustomQuestionTopic(question))}
         </div>
         <p>${escapeHtml(question)}</p>
         <div class="custom-question-item-actions">
@@ -1579,6 +1781,7 @@ function editQuestion(type, key) {
   if (!question || !input || !editTypeInput || !editIndexInput || !editKeyInput || !status || !saveBtn || !cancelEditBtn) return;
 
   input.value = question;
+  renderCustomQuestionTopicOptions(type === "base" ? getBaseQuestionTopic(key) : getCustomQuestionTopic(question));
   editTypeInput.value = type;
   editIndexInput.value = type === "custom" ? String(key) : "";
   editKeyInput.value = type === "base" ? key : "";
@@ -2344,6 +2547,19 @@ async function handleModalClick(event) {
 
   if (event.target.closest("[data-disable-all-topics]")) {
     setAllTopicsEnabled(false);
+    return;
+  }
+
+  const renameTopicButton = event.target.closest("[data-rename-topic]");
+  if (renameTopicButton) {
+    renamingTopic = renameTopicButton.dataset.renameTopic;
+    renderTopicFilterList();
+    return;
+  }
+
+  if (event.target.closest("[data-cancel-topic-rename]")) {
+    renamingTopic = "";
+    renderTopicFilterList();
     return;
   }
 
