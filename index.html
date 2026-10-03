@@ -6,7 +6,7 @@
   <title>진로전담교사 면접 연습</title>
   <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
   <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
-  <link rel="stylesheet" href="style.css?v=20260810-1">
+  <link rel="stylesheet" href="style.css?v=20261003-1">
 </head>
 <body>
   <main class="app">
@@ -169,12 +169,17 @@
           <span class="password-toggle-icon" aria-hidden="true"></span>
         </button>
       </div>
+      <div id="confirmTopicWrap" class="confirm-topic-wrap" hidden>
+        <label class="confirm-input-label" for="confirmTopicSelect">옮길 주제</label>
+        <select id="confirmTopicSelect" class="question-picker custom-question-topic-select"></select>
+        <input id="confirmNewTopicInput" class="topic-rename-input" type="text" maxlength="40" placeholder="새 주제 이름을 입력하세요" aria-label="새 주제 이름" hidden>
+      </div>
       <div id="confirmError" class="confirm-error" aria-live="polite"></div>
       <div id="confirmActions" class="confirm-actions"></div>
     </section>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="main.js?v=20260810-1"></script>
+  <script src="main.js?v=20261003-1"></script>
 </body>
 </html>

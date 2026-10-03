@@ -1904,3 +1904,15 @@ audio {
   border-style: dashed;
   color: var(--muted);
 }
+
+/* 주제 고르기 팝업 (주제 삭제 · 선택 주제 바꾸기) */
+.confirm-topic-wrap {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.confirm-topic-wrap[hidden],
+.confirm-topic-wrap .topic-rename-input[hidden] {
+  display: none;
+}

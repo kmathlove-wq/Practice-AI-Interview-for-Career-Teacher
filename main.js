@@ -88,6 +88,7 @@ const DISABLED_QUESTIONS_KEY = "practiceInterviewDisabledQuestions";
 const CUSTOM_QUESTION_TOPICS_KEY = "practiceInterviewCustomQuestionTopics";
 const BASE_QUESTION_TOPIC_EDITS_KEY = "practiceInterviewBaseQuestionTopicEdits";
 const TOPIC_RENAMES_KEY = "practiceInterviewTopicRenames";
+const DELETED_TOPICS_KEY = "practiceInterviewDeletedTopics";
 const DEFAULT_TOPIC = "기본 질문";
 const CUSTOM_TOPIC = "개인 질문";
 const NO_TOPIC = "주제 없음";
@@ -149,6 +150,9 @@ const confirmInputWrap = document.querySelector("#confirmInputWrap");
 const confirmInput = document.querySelector("#confirmInput");
 const toggleConfirmPasswordBtn = document.querySelector("#toggleConfirmPasswordBtn");
 const confirmError = document.querySelector("#confirmError");
+const confirmTopicWrap = document.querySelector("#confirmTopicWrap");
+const confirmTopicSelect = document.querySelector("#confirmTopicSelect");
+const confirmNewTopicInput = document.querySelector("#confirmNewTopicInput");
 const confirmActions = document.querySelector("#confirmActions");
 const confirmCloseBtn = document.querySelector("#confirmCloseBtn");
 const improvementStore = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) || null;
@@ -167,6 +171,7 @@ let expandedTopicNames = new Set();
 let customQuestionTopics = {};
 let baseQuestionTopicEdits = {};
 let topicRenames = {};
+let deletedTopics = [];
 let renamingTopic = "";
 let questions = [...baseQuestions];
 let enabledQuestions = [...baseQuestions];
@@ -211,6 +216,12 @@ function init() {
   openTopicFilterBtn.addEventListener("click", openTopicFilterModal);
   modalBody.addEventListener("change", handleTopicFilterChange);
   modalBody.addEventListener("submit", handleTopicRenameSubmit);
+  confirmTopicSelect.addEventListener("change", updateConfirmNewTopicVisibility);
+  confirmNewTopicInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    confirmActions.querySelector("[data-confirm-ok]")?.click();
+  });
   randomQuestionBtn.addEventListener("click", clearReservedQuestion);
   openImprovementsBtn.addEventListener("click", openImprovementsModal);
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
@@ -996,6 +1007,12 @@ function loadQuestionPersonalizations() {
   customQuestionTopics = readStoredStringMap(CUSTOM_QUESTION_TOPICS_KEY);
   baseQuestionTopicEdits = readStoredStringMap(BASE_QUESTION_TOPIC_EDITS_KEY);
   topicRenames = readStoredStringMap(TOPIC_RENAMES_KEY);
+  try {
+    const savedDeletedTopics = JSON.parse(localStorage.getItem(DELETED_TOPICS_KEY) || "[]");
+    deletedTopics = Array.isArray(savedDeletedTopics) ? savedDeletedTopics.map((topic) => String(topic)) : [];
+  } catch {
+    deletedTopics = [];
+  }
 
   try {
     const savedOrder = JSON.parse(localStorage.getItem(QUESTION_ORDER_KEY) || "[]");
@@ -1076,13 +1093,115 @@ function getTopicNameOrder() {
   const fileTopics = [...new Set(baseQuestions.map(getBaseFileTopic))];
   const usedTopics = [...new Set(orderedQuestionEntries.map((entry) => entry.topic))];
   const createdTopics = usedTopics.filter((topic) => !fileTopics.includes(topic) && topic !== defaultCustomTopic && topic !== NO_TOPIC);
-  return [...new Set([...fileTopics, ...createdTopics, defaultCustomTopic, NO_TOPIC])];
+  // 삭제한 주제는 (질문이 다시 들어가기 전까지) 목록에서 뺀다. '주제 없음'은 항상 남긴다.
+  return [...new Set([...fileTopics, ...createdTopics, defaultCustomTopic, NO_TOPIC])]
+    .filter((topic) => topic === NO_TOPIC || usedTopics.includes(topic) || !deletedTopics.includes(topic));
+}
+
+// 새 질문을 넣을 때 처음 골라져 있는 주제. '개인 질문' 주제를 지웠다면 '주제 없음'.
+function getFormDefaultTopic() {
+  const defaultCustomTopic = getDefaultCustomTopic();
+  return deletedTopics.includes(defaultCustomTopic) ? NO_TOPIC : defaultCustomTopic;
+}
+
+// 지웠던 주제 이름에 질문을 다시 넣으면 그 주제는 되살아난다.
+function reviveTopic(topic) {
+  deletedTopics = deletedTopics.filter((deletedTopic) => deletedTopic !== topic);
 }
 
 function saveTopicSettings() {
   localStorage.setItem(CUSTOM_QUESTION_TOPICS_KEY, JSON.stringify(customQuestionTopics));
   localStorage.setItem(BASE_QUESTION_TOPIC_EDITS_KEY, JSON.stringify(baseQuestionTopicEdits));
   localStorage.setItem(TOPIC_RENAMES_KEY, JSON.stringify(topicRenames));
+  localStorage.setItem(DELETED_TOPICS_KEY, JSON.stringify(deletedTopics));
+}
+
+// base: 기본 질문 원본 텍스트 목록, custom: 개인 질문 텍스트 목록
+function moveQuestionsToTopic({ base = [], custom = [] }, targetTopic) {
+  base.forEach((originalQuestion) => {
+    if (targetTopic === getBaseFileTopic(originalQuestion)) {
+      delete baseQuestionTopicEdits[originalQuestion];
+    } else {
+      baseQuestionTopicEdits[originalQuestion] = targetTopic;
+    }
+  });
+  custom.forEach((question) => {
+    customQuestionTopics[question] = targetTopic;
+  });
+  reviveTopic(targetTopic);
+  saveTopicSettings();
+}
+
+// 주제 고르기 팝업을 띄우고, 고른 주제 이름(취소하면 null)을 돌려준다.
+function askTargetTopic({ title, message, confirmText, excludeTopic = "", defaultTopic = "", danger = false }) {
+  const topicOptions = getTopicNameOrder().filter((topic) => topic !== excludeTopic);
+  return openConfirmDialog({
+    title,
+    message,
+    confirmText,
+    danger,
+    topicOptions,
+    defaultTopic: topicOptions.includes(defaultTopic) ? defaultTopic : NO_TOPIC
+  });
+}
+
+async function deleteTopic(topic) {
+  if (topic === NO_TOPIC) return;
+
+  // 화면에 보이는 질문뿐 아니라 복원 목록(삭제한 질문)에 있는 질문도 함께 옮긴다.
+  const baseInTopic = baseQuestions.filter((question) => getBaseQuestionTopic(question) === topic);
+  const customInTopic = [...customQuestions, ...deletedCustomQuestions]
+    .filter((question) => getCustomQuestionTopic(question) === topic);
+  const visibleCount = orderedQuestionEntries.filter((entry) => entry.topic === topic).length;
+
+  const targetTopic = await askTargetTopic({
+    title: `'${topic}' 주제를 삭제할까요?`,
+    message: `안에 있던 질문 ${visibleCount}개는 아래에서 고른 주제로 옮겨져요. 질문은 지워지지 않아요.`,
+    confirmText: "삭제",
+    excludeTopic: topic,
+    danger: true
+  });
+  if (!targetTopic) return;
+
+  moveQuestionsToTopic({ base: baseInTopic, custom: customInTopic }, targetTopic);
+  if (!deletedTopics.includes(topic)) deletedTopics.push(topic);
+  disabledTopics = disabledTopics.filter((disabledTopic) => disabledTopic !== topic);
+  expandedTopicNames.delete(topic);
+  saveTopicSettings();
+  applyTopicFilterChange();
+}
+
+async function moveSelectedQuestionsTopic() {
+  const selectedQuestions = getSelectedActiveQuestionKeys();
+  const selectedCount = selectedQuestions.base.length + selectedQuestions.custom.length;
+  if (selectedCount === 0) {
+    resetCustomQuestionForm("주제를 바꿀 질문을 먼저 선택해 주세요.");
+    document.querySelector("#customQuestionStatus")?.classList.add("is-error");
+    return;
+  }
+
+  // 고른 질문들이 모두 같은 주제면 그 주제를 미리 골라 둔다.
+  const selectedTopics = new Set([
+    ...selectedQuestions.base.map(getBaseQuestionTopic),
+    ...selectedQuestions.custom.map(getCustomQuestionTopic)
+  ]);
+  const targetTopic = await askTargetTopic({
+    title: "선택한 질문의 주제를 바꿀까요?",
+    message: `선택한 질문 ${selectedCount}개를 아래에서 고른 주제로 옮겨요.`,
+    confirmText: "바꾸기",
+    defaultTopic: selectedTopics.size === 1 ? [...selectedTopics][0] : ""
+  });
+  if (!targetTopic) return;
+
+  moveQuestionsToTopic(selectedQuestions, targetTopic);
+  syncQuestions();
+  let message = `질문 ${selectedCount}개의 주제를 '${targetTopic}'(으)로 바꿨어요.`;
+  if (disabledTopics.includes(targetTopic)) {
+    message += ` '${targetTopic}' 주제는 지금 꺼져 있어서 무작위로 나오지 않아요.`;
+  }
+  resetCustomQuestionForm(message);
+  renderQuestionOrderList();
+  renderCustomQuestionList();
 }
 
 function saveCustomQuestions() {
@@ -1189,7 +1308,10 @@ function renderTopicFilterList() {
             <span class="topic-filter-count">${onCount}/${entries.length}</span>
           </label>
           <div class="topic-filter-actions">
-            ${topic === NO_TOPIC ? "" : `<button class="mini-btn" type="button" data-rename-topic="${escapeHtml(topic)}">이름 바꾸기</button>`}
+            ${topic === NO_TOPIC ? "" : `
+              <button class="mini-btn" type="button" data-rename-topic="${escapeHtml(topic)}">이름 바꾸기</button>
+              <button class="delete-record-btn" type="button" data-delete-topic="${escapeHtml(topic)}">삭제</button>
+            `}
             <button class="mini-btn" type="button" data-toggle-topic-questions="${escapeHtml(topic)}">${isOpen ? "질문 접기 ▴" : "질문 보기 ▾"}</button>
           </div>
         `;
@@ -1267,6 +1389,7 @@ function renameTopic(oldName, newNameInput) {
   disabledTopics = disabledTopics.filter((topic) => topic !== oldName);
   if (wasDisabled && !disabledTopics.includes(newName)) disabledTopics.push(newName);
   if (expandedTopicNames.delete(oldName)) expandedTopicNames.add(newName);
+  reviveTopic(newName);
 
   saveTopicSettings();
   applyTopicFilterChange();
@@ -1428,7 +1551,7 @@ function setupCustomQuestionForm() {
   form.addEventListener("submit", saveCustomQuestion);
   cancelEditBtn.addEventListener("click", () => resetCustomQuestionForm());
   document.querySelector("#customQuestionTopic")?.addEventListener("change", updateNewTopicInputVisibility);
-  renderCustomQuestionTopicOptions(getDefaultCustomTopic());
+  renderCustomQuestionTopicOptions(getFormDefaultTopic());
 }
 
 function renderCustomQuestionTopicOptions(selectedTopic) {
@@ -1441,7 +1564,7 @@ function renderCustomQuestionTopicOptions(selectedTopic) {
     ${topics.map((topic) => `<option value="${escapeHtml(topic)}">${escapeHtml(topic)}</option>`).join("")}
     <option value="${NEW_TOPIC_VALUE}">＋ 새 주제 만들기</option>
   `;
-  select.value = selectedTopic || getDefaultCustomTopic();
+  select.value = selectedTopic || getFormDefaultTopic();
   updateNewTopicInputVisibility();
 }
 
@@ -1463,7 +1586,7 @@ function updateNewTopicInputVisibility() {
 function getSelectedFormTopic() {
   const select = document.querySelector("#customQuestionTopic");
   const newTopicInput = document.querySelector("#customQuestionNewTopic");
-  if (!select) return getDefaultCustomTopic();
+  if (!select) return getFormDefaultTopic();
   if (select.value !== NEW_TOPIC_VALUE) return select.value;
   return newTopicInput ? newTopicInput.value.replace(/\s+/g, " ").trim() : "";
 }
@@ -1538,6 +1661,7 @@ function saveCustomQuestion(event) {
     status.textContent = "질문을 추가했습니다.";
   }
 
+  reviveTopic(topic);
   if (disabledTopics.includes(topic)) {
     status.textContent += ` '${topic}' 주제는 지금 꺼져 있어서 무작위로 나오지 않아요.`;
   }
@@ -1552,7 +1676,7 @@ function saveCustomQuestion(event) {
   renderCustomQuestionList();
 }
 
-function resetCustomQuestionForm(message = "", topic = getDefaultCustomTopic()) {
+function resetCustomQuestionForm(message = "", topic = getFormDefaultTopic()) {
   renderCustomQuestionTopicOptions(topic);
   const input = document.querySelector("#customQuestionInput");
   const editTypeInput = document.querySelector("#customQuestionEditType");
@@ -1738,7 +1862,7 @@ function renderCustomQuestionList() {
     <section class="custom-question-section">
       <div class="custom-question-section-header">
         <h3>개인 질문</h3>
-        ${customQuestions.length ? `<div class="custom-question-bulk-actions"><button class="delete-record-btn" type="button" data-delete-selected-active-questions>선택 삭제</button></div>` : ""}
+        ${customQuestions.length ? `<div class="custom-question-bulk-actions"><button class="mini-btn" type="button" data-move-selected-topic>선택 주제 바꾸기</button><button class="delete-record-btn" type="button" data-delete-selected-active-questions>선택 삭제</button></div>` : ""}
       </div>
       ${customQuestionsHtml}
     </section>
@@ -1746,7 +1870,7 @@ function renderCustomQuestionList() {
       <div class="custom-question-section-header">
         <h3>기본 질문</h3>
         <div class="custom-question-bulk-actions">
-          ${visibleBaseQuestionItems.length ? `<button class="delete-record-btn" type="button" data-delete-selected-active-questions>선택 삭제</button>` : ""}
+          ${visibleBaseQuestionItems.length ? `<button class="mini-btn" type="button" data-move-selected-topic>선택 주제 바꾸기</button><button class="delete-record-btn" type="button" data-delete-selected-active-questions>선택 삭제</button>` : ""}
           ${restoreButtonHtml}
         </div>
       </div>
@@ -2449,8 +2573,22 @@ function openConfirmDialog(options) {
     inputType = "text",
     confirmText = "확인",
     cancelText = "취소",
-    danger = false
+    danger = false,
+    topicOptions = null,
+    defaultTopic = ""
   } = options;
+  const hasTopic = Array.isArray(topicOptions);
+
+  confirmTopicWrap.hidden = !hasTopic;
+  if (hasTopic) {
+    confirmTopicSelect.innerHTML = `
+      ${topicOptions.map((topic) => `<option value="${escapeHtml(topic)}">${escapeHtml(topic)}</option>`).join("")}
+      <option value="${NEW_TOPIC_VALUE}">＋ 새 주제 만들기</option>
+    `;
+    confirmTopicSelect.value = defaultTopic || topicOptions[0] || NEW_TOPIC_VALUE;
+    confirmNewTopicInput.value = "";
+    updateConfirmNewTopicVisibility();
+  }
 
   confirmTitle.textContent = title;
   confirmMessage.textContent = message;
@@ -2471,6 +2609,8 @@ function openConfirmDialog(options) {
 
   if (inputLabel) {
     confirmInput.focus();
+  } else if (hasTopic) {
+    confirmTopicSelect.focus();
   } else {
     confirmActions.querySelector("[data-confirm-ok]")?.focus();
   }
@@ -2483,7 +2623,7 @@ function openConfirmDialog(options) {
       resolve(value);
     };
 
-    activeConfirmDialog = { finish, hasInput: Boolean(inputLabel) };
+    activeConfirmDialog = { finish, hasInput: Boolean(inputLabel), hasTopic };
   });
 }
 
@@ -2503,7 +2643,27 @@ function handleConfirmAction(event) {
     return;
   }
 
+  if (activeConfirmDialog.hasTopic) {
+    const topic = confirmTopicSelect.value === NEW_TOPIC_VALUE
+      ? confirmNewTopicInput.value.replace(/\s+/g, " ").trim()
+      : confirmTopicSelect.value;
+    if (!topic) {
+      confirmError.textContent = "새 주제 이름을 입력해 주세요.";
+      confirmNewTopicInput.focus();
+      return;
+    }
+    activeConfirmDialog.finish(topic);
+    return;
+  }
+
   activeConfirmDialog.finish(activeConfirmDialog.hasInput ? confirmInput.value : true);
+}
+
+function updateConfirmNewTopicVisibility() {
+  const isNewTopic = confirmTopicSelect.value === NEW_TOPIC_VALUE;
+  confirmNewTopicInput.hidden = !isNewTopic;
+  confirmError.textContent = "";
+  if (isNewTopic) confirmNewTopicInput.focus();
 }
 
 function handleConfirmInputKeydown(event) {
@@ -2547,6 +2707,17 @@ async function handleModalClick(event) {
 
   if (event.target.closest("[data-disable-all-topics]")) {
     setAllTopicsEnabled(false);
+    return;
+  }
+
+  const deleteTopicButton = event.target.closest("[data-delete-topic]");
+  if (deleteTopicButton) {
+    await deleteTopic(deleteTopicButton.dataset.deleteTopic);
+    return;
+  }
+
+  if (event.target.closest("[data-move-selected-topic]")) {
+    await moveSelectedQuestionsTopic();
     return;
   }
 

@@ -57,7 +57,7 @@ python3 -m http.server 8000
 - `FALLBACK_QUESTIONS`를 기본값으로 둔다.
 - `loadQuestionsFromTextFile()`이 `면접예상질문.txt`, `면접예상질문2.txt`를 순서대로 가져와 질문 목록을 합친다.
 - 질문 파일은 번호 목록/빈 줄로 구분하고, `<주제이름>` 줄 아래 질문은 그 주제로 묶는다(`parseTopicQuestions()`; 개인 질문은 `개인 질문` 주제).
-- `주제 선택` 모달에서 주제·질문별 켜기/끄기(`…DisabledTopics`/`…DisabledQuestions`, 기본 전부 켜짐)와 주제 이름 바꾸기(같은 이름이면 합쳐짐, `주제 없음`은 불가). 무작위·드롭다운은 `enabledQuestions`만 쓴다. 주제 결정 순서: 파일 주제 → `practiceInterviewTopicRenames` → 질문별 지정(`…CustomQuestionTopics`/`…BaseQuestionTopicEdits`, 질문 관리 폼의 주제 선택·새 주제 만들기).
+- `주제 선택` 모달에서 주제·질문별 켜기/끄기(`…DisabledTopics`/`…DisabledQuestions`, 기본 전부 켜짐), 주제 이름 바꾸기(같은 이름이면 합쳐짐)·삭제(`askTargetTopic()` 팝업에서 옮길 주제 선택, `…DeletedTopics`; `주제 없음`은 둘 다 불가). 질문 관리의 `선택 주제 바꾸기`로 여러 질문 이동. 무작위·드롭다운은 `enabledQuestions`만 쓴다. 주제 결정 순서: 파일 주제 → `practiceInterviewTopicRenames` → 질문별 지정(`…CustomQuestionTopics`/`…BaseQuestionTopicEdits`, 질문 관리 폼의 주제 선택·새 주제 만들기).
 - 드롭다운에서 질문을 고르면 즉시 다음 질문으로 예약된다.
 - `무작위` 버튼은 예약 질문을 해제한다.
 - `질문 추가`는 질문 관리 모달을 열고, 개인 질문은 `practiceInterviewCustomQuestions`에 저장한다.
