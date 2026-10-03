@@ -56,8 +56,8 @@ python3 -m http.server 8000
 
 - `FALLBACK_QUESTIONS`를 기본값으로 둔다.
 - `loadQuestionsFromTextFile()`이 `면접예상질문.txt`, `면접예상질문2.txt`를 순서대로 가져와 질문 목록을 합친다.
-- 추가 질문 파일이 없거나 비어 있으면 읽을 수 있는 질문 파일만 사용한다.
-- 질문 파일은 빈 줄 또는 `1.`, `2.` 같은 번호 목록 기준으로 구분하고, 줄바꿈은 공백으로 정리한다.
+- 질문 파일은 번호 목록/빈 줄로 구분하고, `<주제이름>` 줄 아래 질문은 그 주제로 묶는다(`parseTopicQuestions()`; 개인 질문은 `개인 질문` 주제).
+- `주제 선택` 모달에서 주제·질문별로 켜고 끈다(`practiceInterviewDisabledTopics`/`practiceInterviewDisabledQuestions`, 기본 전부 켜짐). 무작위·드롭다운은 `enabledQuestions`만 쓴다.
 - 드롭다운에서 질문을 고르면 즉시 다음 질문으로 예약된다.
 - `무작위` 버튼은 예약 질문을 해제한다.
 - `질문 추가`는 질문 관리 모달을 열고, 개인 질문은 `practiceInterviewCustomQuestions`에 저장한다.

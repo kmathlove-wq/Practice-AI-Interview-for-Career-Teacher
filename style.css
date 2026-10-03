@@ -1767,3 +1767,84 @@ audio {
     grid-template-columns: repeat(2, minmax(128px, 1fr));
   }
 }
+
+/* 주제 선택 모달 */
+.topic-filter-help {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.topic-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.topic-filter-toolbar .chip {
+  margin-left: auto;
+}
+
+.topic-filter-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.topic-filter-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f6f9fb;
+  padding: 12px 14px;
+}
+
+.topic-filter-group.is-off {
+  opacity: 0.6;
+}
+
+.topic-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.topic-filter-label,
+.topic-question-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.topic-filter-label {
+  align-items: center;
+}
+
+.topic-filter-label input,
+.topic-question-label input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--primary);
+}
+
+.topic-filter-count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.topic-question-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.5;
+}

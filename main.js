@@ -83,6 +83,10 @@ const DELETED_CUSTOM_QUESTIONS_KEY = "practiceInterviewDeletedCustomQuestions";
 const BASE_QUESTION_EDITS_KEY = "practiceInterviewBaseQuestionEdits";
 const DELETED_BASE_QUESTIONS_KEY = "practiceInterviewDeletedBaseQuestions";
 const QUESTION_ORDER_KEY = "practiceInterviewQuestionOrder";
+const DISABLED_TOPICS_KEY = "practiceInterviewDisabledTopics";
+const DISABLED_QUESTIONS_KEY = "practiceInterviewDisabledQuestions";
+const DEFAULT_TOPIC = "기본 질문";
+const CUSTOM_TOPIC = "개인 질문";
 const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
@@ -118,6 +122,7 @@ const practiceHistory = document.querySelector("#practiceHistory");
 const historyCount = document.querySelector("#historyCount");
 const questionPicker = document.querySelector("#questionPicker");
 const openCustomQuestionBtn = document.querySelector("#openCustomQuestionBtn");
+const openTopicFilterBtn = document.querySelector("#openTopicFilterBtn");
 const randomQuestionBtn = document.querySelector("#randomQuestionBtn");
 const reservedQuestionState = document.querySelector("#reservedQuestionState");
 const openImprovementsBtn = document.querySelector("#openImprovementsBtn");
@@ -150,7 +155,12 @@ let customQuestions = [];
 let deletedCustomQuestions = [];
 let questionOrder = [];
 let orderedQuestionEntries = [];
+let baseQuestionTopics = {};
+let disabledTopics = [];
+let disabledQuestionKeys = [];
+let expandedTopicNames = new Set();
 let questions = [...baseQuestions];
+let enabledQuestions = [...baseQuestions];
 let currentQuestion = "";
 let timerId = null;
 let recorder = null;
@@ -189,6 +199,8 @@ function init() {
   envPopoverCloseBtn.addEventListener("click", hideEnvPopover);
   questionPicker.addEventListener("change", reserveSelectedQuestion);
   openCustomQuestionBtn.addEventListener("click", openCustomQuestionModal);
+  openTopicFilterBtn.addEventListener("click", openTopicFilterModal);
+  modalBody.addEventListener("change", handleTopicFilterChange);
   randomQuestionBtn.addEventListener("click", clearReservedQuestion);
   openImprovementsBtn.addEventListener("click", openImprovementsModal);
   openGuideBtn.addEventListener("click", () => openInfoModal("면접 가이드", answerGuide.innerHTML));
@@ -288,17 +300,39 @@ async function loadQuestionsFromTextFile() {
       if (!response.ok) continue;
 
       const text = await response.text();
-      loadedQuestions.push(...parseQuestions(text));
+      loadedQuestions.push(...parseTopicQuestions(text));
     }
 
     if (loadedQuestions.length > 0) {
-      baseQuestions = loadedQuestions;
+      baseQuestions = loadedQuestions.map((item) => item.text);
+      baseQuestionTopics = Object.fromEntries(loadedQuestions.map((item) => [item.text, item.topic]));
     }
     syncQuestions();
   } catch {
     baseQuestions = [...FALLBACK_QUESTIONS];
     syncQuestions();
   }
+}
+
+// 질문 파일의 "<주제이름>" 줄을 만나면 그 아래 질문들을 해당 주제로 묶는다.
+function parseTopicQuestions(text) {
+  const sections = [];
+  let current = { topic: DEFAULT_TOPIC, lines: [] };
+
+  text.replace(/\r/g, "").split("\n").forEach((line) => {
+    const topicMatch = line.trim().match(/^<(.+)>$/);
+    if (topicMatch) {
+      sections.push(current);
+      current = { topic: topicMatch[1].trim(), lines: [] };
+      return;
+    }
+    current.lines.push(line);
+  });
+  sections.push(current);
+
+  return sections.flatMap((section) =>
+    parseQuestions(section.lines.join("\n")).map((question) => ({ text: question, topic: section.topic }))
+  );
 }
 
 function parseQuestions(text) {
@@ -314,6 +348,10 @@ function parseQuestions(text) {
 }
 
 async function startPractice() {
+  if (!reservedQuestion && enabledQuestions.length === 0) {
+    showNoEnabledQuestionMessage();
+    return;
+  }
   resetResult();
   pickRandomQuestion();
   await runCurrentQuestion();
@@ -322,9 +360,18 @@ async function startPractice() {
 async function skipQuestion() {
   stopCurrentTimer();
   await stopActiveRecording();
+  if (!reservedQuestion && enabledQuestions.length === 0) {
+    finishPractice("켜진 질문이 없어요. '주제 선택'에서 질문을 켜 주세요.");
+    showNoEnabledQuestionMessage();
+    return;
+  }
   resetResult();
   pickRandomQuestion(currentQuestion);
   await runCurrentQuestion();
+}
+
+function showNoEnabledQuestionMessage() {
+  timerTitle.textContent = "켜진 질문이 없어요. '주제 선택'에서 질문을 켜 주세요.";
 }
 
 async function retryCurrentQuestion() {
@@ -383,8 +430,8 @@ function pickRandomQuestion(previousQuestion = "") {
     return;
   }
 
-  const candidates = questions.filter((question) => question !== previousQuestion);
-  const pool = candidates.length > 0 ? candidates : questions;
+  const candidates = enabledQuestions.filter((question) => question !== previousQuestion);
+  const pool = candidates.length > 0 ? candidates : enabledQuestions;
   currentQuestion = pool[Math.floor(Math.random() * pool.length)];
   setQuestionText(currentQuestion);
   renderAnswerGuide(currentQuestion);
@@ -921,6 +968,16 @@ function loadQuestionPersonalizations() {
   }
 
   try {
+    const savedTopics = JSON.parse(localStorage.getItem(DISABLED_TOPICS_KEY) || "[]");
+    disabledTopics = Array.isArray(savedTopics) ? savedTopics.map((topic) => String(topic)) : [];
+    const savedQuestionKeys = JSON.parse(localStorage.getItem(DISABLED_QUESTIONS_KEY) || "[]");
+    disabledQuestionKeys = Array.isArray(savedQuestionKeys) ? savedQuestionKeys.map((key) => String(key)) : [];
+  } catch {
+    disabledTopics = [];
+    disabledQuestionKeys = [];
+  }
+
+  try {
     const savedOrder = JSON.parse(localStorage.getItem(QUESTION_ORDER_KEY) || "[]");
     questionOrder = Array.isArray(savedOrder) ? savedOrder.map((key) => String(key)) : [];
   } catch {
@@ -940,12 +997,14 @@ function buildQuestionEntries() {
   const baseEntries = visibleBaseOriginals.map((original) => ({
     key: `base:${original}`,
     text: baseQuestionEdits[original] || original,
-    type: "base"
+    type: "base",
+    topic: baseQuestionTopics[original] || DEFAULT_TOPIC
   }));
   const customEntries = customQuestions.map((question) => ({
     key: `custom:${question}`,
     text: question,
-    type: "custom"
+    type: "custom",
+    topic: CUSTOM_TOPIC
   }));
   const entries = [...baseEntries, ...customEntries];
   const known = new Set(entries.map((entry) => entry.key));
@@ -982,11 +1041,133 @@ function syncQuestions() {
       questions = orderedQuestionEntries.map((entry) => entry.text);
     }
   }
-  if (reservedQuestion && !questions.includes(reservedQuestion)) {
+  enabledQuestions = orderedQuestionEntries.filter(isEntryEnabled).map((entry) => entry.text);
+  if (reservedQuestion && !enabledQuestions.includes(reservedQuestion)) {
     reservedQuestion = "";
     reservedQuestionState.textContent = "예약 없음";
   }
   renderQuestionPicker();
+}
+
+// 주제가 켜져 있고, 그 질문도 따로 꺼지지 않았을 때만 무작위 후보가 된다.
+// 주제 끄기와 질문 끄기는 따로 저장되므로, 주제를 다시 켜도 개별로 꺼둔 질문은 꺼진 채 남는다.
+function isEntryEnabled(entry) {
+  return !disabledTopics.includes(entry.topic) && !disabledQuestionKeys.includes(entry.key);
+}
+
+function saveTopicFilter() {
+  localStorage.setItem(DISABLED_TOPICS_KEY, JSON.stringify(disabledTopics));
+  localStorage.setItem(DISABLED_QUESTIONS_KEY, JSON.stringify(disabledQuestionKeys));
+}
+
+function getTopicGroups() {
+  const groups = new Map();
+  orderedQuestionEntries.forEach((entry) => {
+    if (!groups.has(entry.topic)) groups.set(entry.topic, []);
+    groups.get(entry.topic).push(entry);
+  });
+  // 주제 순서는 질문 파일에 적힌 순서를 따르고, 개인 질문은 맨 뒤에 둔다.
+  const fileTopicOrder = [...new Set(baseQuestions.map((question) => baseQuestionTopics[question] || DEFAULT_TOPIC)), CUSTOM_TOPIC];
+  return [...groups.entries()]
+    .sort(([topicA], [topicB]) => fileTopicOrder.indexOf(topicA) - fileTopicOrder.indexOf(topicB))
+    .map(([topic, entries]) => ({ topic, entries }));
+}
+
+function openTopicFilterModal() {
+  stopImprovementAutoRefresh();
+  modalTitle.textContent = "주제 선택";
+  modalBody.innerHTML = `
+    <p class="topic-filter-help">켜진 주제의 켜진 질문에서만 무작위로 나와요.</p>
+    <div class="topic-filter-toolbar">
+      <button class="mini-btn" type="button" data-enable-all-topics>모두 켜기</button>
+      <button class="mini-btn" type="button" data-disable-all-topics>모두 끄기</button>
+      <span id="topicFilterCount" class="chip"></span>
+    </div>
+    <div id="topicFilterList" class="topic-filter-list"></div>
+  `;
+  infoModal.hidden = false;
+  closeModalBtn.focus();
+  renderTopicFilterList();
+}
+
+function renderTopicFilterList() {
+  const list = document.querySelector("#topicFilterList");
+  const count = document.querySelector("#topicFilterCount");
+  if (!list) return;
+
+  if (count) {
+    count.textContent = `켜진 질문 ${enabledQuestions.length} / ${orderedQuestionEntries.length}`;
+  }
+
+  list.innerHTML = getTopicGroups()
+    .map(({ topic, entries }) => {
+      const isTopicOn = !disabledTopics.includes(topic);
+      const isOpen = expandedTopicNames.has(topic);
+      const onCount = entries.filter((entry) => !disabledQuestionKeys.includes(entry.key)).length;
+      return `
+        <section class="topic-filter-group${isTopicOn ? "" : " is-off"}">
+          <div class="topic-filter-header">
+            <label class="topic-filter-label">
+              <input type="checkbox" data-topic-checkbox="${escapeHtml(topic)}" data-partial="${onCount > 0 && onCount < entries.length}" ${isTopicOn ? "checked" : ""}>
+              <strong>${escapeHtml(topic)}</strong>
+              <span class="topic-filter-count">${onCount}/${entries.length}</span>
+            </label>
+            <button class="mini-btn" type="button" data-toggle-topic-questions="${escapeHtml(topic)}">${isOpen ? "질문 접기 ▴" : "질문 보기 ▾"}</button>
+          </div>
+          ${isOpen ? `
+            <ul class="topic-question-list">
+              ${entries.map((entry) => `
+                <li>
+                  <label class="topic-question-label">
+                    <input type="checkbox" data-question-checkbox="${escapeHtml(entry.key)}" ${disabledQuestionKeys.includes(entry.key) ? "" : "checked"} ${isTopicOn ? "" : "disabled"}>
+                    <span>${escapeHtml(entry.text)}</span>
+                  </label>
+                </li>
+              `).join("")}
+            </ul>
+          ` : ""}
+        </section>
+      `;
+    })
+    .join("");
+
+  // 주제는 켜져 있지만 그 안의 질문 일부만 꺼져 있으면 체크박스를 '반쯤 체크(−)'로 보여 준다.
+  list.querySelectorAll("[data-topic-checkbox]").forEach((checkbox) => {
+    checkbox.indeterminate = checkbox.checked && checkbox.dataset.partial === "true";
+  });
+}
+
+function handleTopicFilterChange(event) {
+  const topicCheckbox = event.target.closest("[data-topic-checkbox]");
+  if (topicCheckbox) {
+    const topic = topicCheckbox.dataset.topicCheckbox;
+    disabledTopics = topicCheckbox.checked
+      ? disabledTopics.filter((item) => item !== topic)
+      : [...disabledTopics, topic];
+    applyTopicFilterChange();
+    return;
+  }
+
+  const questionCheckbox = event.target.closest("[data-question-checkbox]");
+  if (questionCheckbox) {
+    const key = questionCheckbox.dataset.questionCheckbox;
+    disabledQuestionKeys = questionCheckbox.checked
+      ? disabledQuestionKeys.filter((item) => item !== key)
+      : [...disabledQuestionKeys, key];
+    applyTopicFilterChange();
+  }
+}
+
+function setAllTopicsEnabled(isEnabled) {
+  disabledTopics = isEnabled ? [] : getTopicGroups().map((group) => group.topic);
+  if (isEnabled) disabledQuestionKeys = [];
+  applyTopicFilterChange();
+}
+
+function applyTopicFilterChange() {
+  saveTopicFilter();
+  syncQuestions();
+  renderTopicFilterList();
 }
 
 function moveQuestionToFront(key) {
@@ -1028,14 +1209,14 @@ function renderQuestionPicker() {
   placeholderOption.hidden = true;
   questionPicker.append(placeholderOption);
 
-  questions.forEach((question, index) => {
+  enabledQuestions.forEach((question, index) => {
     const option = document.createElement("option");
     option.value = String(index);
     option.textContent = `${index + 1}. ${question}`;
     questionPicker.append(option);
   });
 
-  const reservedIndex = questions.indexOf(reservedQuestion);
+  const reservedIndex = enabledQuestions.indexOf(reservedQuestion);
   questionPicker.value = reservedIndex >= 0 ? String(reservedIndex) : "";
   updateQuestionPickerPlaceholder();
 }
@@ -1043,7 +1224,7 @@ function renderQuestionPicker() {
 function reserveSelectedQuestion() {
   if (questionPicker.value === "") return;
 
-  const selectedQuestion = questions[Number(questionPicker.value)];
+  const selectedQuestion = enabledQuestions[Number(questionPicker.value)];
   if (!selectedQuestion) return;
 
   reservedQuestion = selectedQuestion;
@@ -2150,6 +2331,28 @@ function closeInfoModal() {
 }
 
 async function handleModalClick(event) {
+  if (event.target.closest("[data-enable-all-topics]")) {
+    setAllTopicsEnabled(true);
+    return;
+  }
+
+  if (event.target.closest("[data-disable-all-topics]")) {
+    setAllTopicsEnabled(false);
+    return;
+  }
+
+  const toggleTopicQuestionsButton = event.target.closest("[data-toggle-topic-questions]");
+  if (toggleTopicQuestionsButton) {
+    const topic = toggleTopicQuestionsButton.dataset.toggleTopicQuestions;
+    if (expandedTopicNames.has(topic)) {
+      expandedTopicNames.delete(topic);
+    } else {
+      expandedTopicNames.add(topic);
+    }
+    renderTopicFilterList();
+    return;
+  }
+
   const toggleBaseRestoreListButton = event.target.closest("[data-toggle-base-restore-list]");
   if (toggleBaseRestoreListButton) {
     isBaseRestoreListOpen = !isBaseRestoreListOpen;
