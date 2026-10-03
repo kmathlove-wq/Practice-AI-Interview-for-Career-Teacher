@@ -410,7 +410,7 @@ async function runAnswerPhase() {
 
   const recordingStarted = await startRecording();
   if (!recordingStarted) {
-    finishPractice("마이크 권한을 허용하면 답변 녹음을 시작할 수 있습니다.");
+    finishPractice("마이크 필요");
     return;
   }
 
@@ -514,6 +514,8 @@ async function startRecording() {
     cameraState.textContent = isVideoRecording ? "카메라 녹화 중" : "음성만 녹음";
     return true;
   } catch {
+    // 시계 안에는 '마이크 필요'만 보이므로, 자세한 안내는 넓은 녹음 결과 칸에 보여 준다.
+    transcriptText.textContent = "마이크 권한을 허용하면 답변 녹음을 시작할 수 있습니다.";
     return false;
   }
 }
