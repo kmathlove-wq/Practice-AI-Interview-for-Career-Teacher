@@ -181,6 +181,7 @@ startPractice()
 ### 검증
 
 - 코드 변경 후 최소 `node --check main.js`를 실행한다.
+- `main.js`/`style.css`를 바꾸면 `index.html`의 `?v=날짜-번호`를 올린다(안 올리면 브라우저 캐시로 옛 코드가 실행됨).
 - HTML/CSS만 바꿔도 JS 참조를 건드렸다면 `node --check main.js`를 실행한다.
 - 카메라/마이크 관련 변경은 HTTPS 또는 localhost 보안 컨텍스트를 고려한다.
 
