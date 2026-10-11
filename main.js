@@ -1444,6 +1444,12 @@ function handleTopicFilterChange(event) {
     disabledTopics = topicCheckbox.checked
       ? disabledTopics.filter((item) => item !== topic)
       : [...disabledTopics, topic];
+    // 주제를 켜면 그 주제 안에서 꺼 두었던 질문도 모두 다시 켠다.
+    if (topicCheckbox.checked) {
+      const group = getTopicGroups().find((item) => item.topic === topic);
+      const topicKeys = group ? group.entries.map((entry) => entry.key) : [];
+      disabledQuestionKeys = disabledQuestionKeys.filter((key) => !topicKeys.includes(key));
+    }
     applyTopicFilterChange();
     return;
   }
