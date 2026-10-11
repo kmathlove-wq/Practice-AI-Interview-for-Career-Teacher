@@ -46,7 +46,7 @@ python3 -m http.server 8000
 | 상수 | 값 | 설명 |
 |---|---:|---|
 | `PREP_SECONDS` | 10 | 질문 확인 후 준비 시간 |
-| `answerSeconds` | 90 / 120 | 답변 녹화 시간. 시계 아래 버튼으로 선택(`practiceInterviewAnswerSeconds`), 준비·답변 중 잠금 |
+| `answerSeconds` | 90 / 120 | 답변 녹화 시간. 시계 아래 버튼으로 선택(`practiceInterviewAnswerSeconds`), 답변 중에만 잠금(준비 시간엔 변경 가능) |
 
 타이머 시간은 사용자 요청 없이 변경하지 않는다.
 

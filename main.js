@@ -744,9 +744,9 @@ function loadAnswerDuration() {
   }
 }
 
-// 준비·답변 중에 시간이 바뀌면 헷갈리므로, 그때는 버튼을 잠근다.
+// 준비 시간에는 질문을 보고 시간을 바꿀 수 있고, 답변 중에만 버튼을 잠근다.
 function renderAnswerDurationButtons() {
-  const isLocked = phase === "prep" || phase === "answer";
+  const isLocked = phase === "answer";
   answerDurationToggle.querySelectorAll("[data-answer-seconds]").forEach((button) => {
     const isActive = Number(button.dataset.answerSeconds) === answerSeconds;
     button.classList.toggle("is-active", isActive);
@@ -757,7 +757,7 @@ function renderAnswerDurationButtons() {
 
 function selectAnswerDuration(event) {
   const button = event.target.closest("[data-answer-seconds]");
-  if (!button || phase === "prep" || phase === "answer") return;
+  if (!button || phase === "answer") return;
 
   answerSeconds = Number(button.dataset.answerSeconds);
   try {
