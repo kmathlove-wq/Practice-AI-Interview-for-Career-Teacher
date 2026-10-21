@@ -77,7 +77,7 @@ const FALLBACK_QUESTIONS = [
 
 const PREP_SECONDS = 10;
 const ANSWER_SECONDS_OPTIONS = [90, 110, 120, 180];
-const DEFAULT_ANSWER_SECONDS = 90;
+const DEFAULT_ANSWER_SECONDS = 110;
 const RETRY_EARLY_WINDOW_SECONDS = 20;
 const ANSWER_DURATION_KEY = "practiceInterviewAnswerSeconds";
 const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
