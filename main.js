@@ -75,8 +75,7 @@ const FALLBACK_QUESTIONS = [
   "진로체험 운영 절차를 설명하고, 활성화 방안을 말하시오."
 ];
 
-const PREP_SECONDS = 10;
-const ANSWER_SECONDS_OPTIONS = [90, 110, 120, 180];
+const ANSWER_SECONDS_OPTIONS = [90, 110, 180];
 const DEFAULT_ANSWER_SECONDS = 110;
 const RETRY_EARLY_WINDOW_SECONDS = 20;
 const ANSWER_DURATION_KEY = "practiceInterviewAnswerSeconds";
@@ -421,15 +420,9 @@ async function retryCurrentQuestion() {
   await runAnswerPhase();
 }
 
+// 준비 시간 없이 질문이 나오자마자 답변 녹화를 시작한다.
 async function runCurrentQuestion() {
-  startBtn.disabled = true;
-  skipBtn.disabled = false;
-  updateRetryAvailability();
-  setPhase("prep");
-  await runTimer(PREP_SECONDS, "준비 시간");
-
-  if (phase !== "prep") return;
-
+  retryBtn.disabled = true;
   await runAnswerPhase();
 }
 
@@ -725,7 +718,6 @@ function setPhase(nextPhase) {
 
   const labels = {
     idle: "대기 중",
-    prep: "준비 중",
     answer: "답변 녹음 중",
     done: "완료"
   };
@@ -744,7 +736,7 @@ function loadAnswerDuration() {
   }
 }
 
-// 준비 시간에는 질문을 보고 시간을 바꿀 수 있고, 답변 중에만 버튼을 잠근다.
+// 답변 시작 전·후에는 시간을 바꿀 수 있고, 답변 중에만 버튼을 잠근다.
 function renderAnswerDurationButtons() {
   const isLocked = phase === "answer";
   answerDurationToggle.querySelectorAll("[data-answer-seconds]").forEach((button) => {
