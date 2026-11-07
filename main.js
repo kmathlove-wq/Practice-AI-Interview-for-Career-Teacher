@@ -95,11 +95,9 @@ const DEFAULT_TOPIC = "기본 질문";
 const CUSTOM_TOPIC = "개인 질문";
 const NO_TOPIC = "주제 없음";
 const NEW_TOPIC_VALUE = "__new_topic__";
-const SUPABASE_URL = "https://habehqibpnazvsmefgew.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dn4KwHEe4QbLlg2Lp7OQnA_Z4d4oMZd";
+const IMPROVEMENT_API_URL = "https://career-study-improvements.cf-jjakkung.workers.dev";
 const IMPROVEMENT_AUTHOR_KEY = "practiceInterviewImprovementAuthorId";
 const LOCAL_IMPROVEMENTS_KEY = "practiceInterviewLocalImprovements";
-const IMPROVEMENT_COMPLETION_PASSWORD = "1+1=1+1=1+1=1";
 const IMPROVEMENT_PROMO_DISMISS_KEY = "practiceInterviewImprovementPromoDismissDate";
 const IMPROVEMENT_PROMO_VERSION = "2026-06-21-v1";
 
@@ -158,7 +156,6 @@ const confirmTopicSelect = document.querySelector("#confirmTopicSelect");
 const confirmNewTopicInput = document.querySelector("#confirmNewTopicInput");
 const confirmActions = document.querySelector("#confirmActions");
 const confirmCloseBtn = document.querySelector("#confirmCloseBtn");
-const improvementStore = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) || null;
 
 let baseQuestions = [...FALLBACK_QUESTIONS];
 let baseQuestionEdits = {};
@@ -197,8 +194,9 @@ let currentTimerRemaining = 0;
 let answerSeconds = DEFAULT_ANSWER_SECONDS;
 let activeConfirmDialog = null;
 let improvementRefreshTimerId = null;
-let improvementRealtimeChannel = null;
-let improvementStorageMode = "remote";
+let improvementItems = null;
+let improvementLoadId = 0;
+let improvementUploadingLocal = false;
 let isBaseRestoreListOpen = false;
 let isQuestionOrderListOpen = false;
 let expandedOrderQuestionKeys = new Set();
@@ -2231,6 +2229,7 @@ function openImprovementsModal() {
     </form>
     <div id="improvementList" class="improvement-list">개선사항을 불러오는 중입니다.</div>
   `;
+  improvementItems = null;
   infoModal.hidden = false;
   closeModalBtn.focus();
   setupImprovementForm();
@@ -2247,53 +2246,84 @@ function setupImprovementForm() {
   cancelEditBtn.addEventListener("click", resetImprovementForm);
 }
 
+async function improvementRequest(path, { method = "GET", body } = {}) {
+  let response;
+  try {
+    response = await fetch(`${IMPROVEMENT_API_URL}${path}`, {
+      method,
+      cache: "no-store",
+      headers: {
+        "X-Author-Id": getImprovementAuthorId(),
+        ...(body ? { "Content-Type": "application/json" } : {})
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch {
+    throw new Error("서버에 연결하지 못했습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.");
+  }
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.");
+  }
+  return data;
+}
+
 async function loadImprovements() {
   const list = document.querySelector("#improvementList");
   if (!list) return;
 
-  if (!improvementStore) {
-    showLocalImprovements("공유 저장소를 불러오지 못해 이 브라우저에만 임시 저장합니다.");
-    return;
+  const loadId = ++improvementLoadId;
+  await uploadLocalImprovements();
+
+  try {
+    const { items } = await improvementRequest("/api/improvements");
+    if (loadId !== improvementLoadId || !document.querySelector("#improvementList")) return;
+    improvementItems = items || [];
+    renderImprovementList(improvementItems);
+  } catch (error) {
+    console.warn("Failed to load improvements", error);
+    if (loadId !== improvementLoadId || !document.querySelector("#improvementList")) return;
+    if (improvementItems) {
+      renderImprovementList(improvementItems, { message: error.message });
+    } else {
+      list.innerHTML = `<p class="improvement-notice">${escapeHtml(error.message)}</p>`;
+    }
   }
+}
 
-  const { data, error } = await improvementStore
-    .from("improvement_items")
-    .select("id, content, author_id, created_at, updated_at")
-    .order("created_at", { ascending: false });
+// 예전에 연결이 끊겼을 때 이 브라우저에만 임시 저장된 글을 공유 게시판으로 올린다.
+async function uploadLocalImprovements() {
+  if (improvementUploadingLocal) return;
+  const items = getLocalImprovements();
+  const validItems = items.filter((item) => typeof item?.content === "string" && item.content.trim());
+  if (validItems.length !== items.length) setLocalImprovements(validItems);
+  if (validItems.length === 0) return;
 
-  if (error) {
-    console.warn("Failed to load improvements from Supabase", error);
-    showLocalImprovements("공유 저장소에 연결하지 못해 이 브라우저에만 임시 저장합니다. Supabase 프로젝트 상태를 확인해 주세요.");
-    return;
+  improvementUploadingLocal = true;
+  const batch = validItems.slice(0, 20);
+  try {
+    await improvementRequest("/api/improvements/import", {
+      method: "POST",
+      body: { items: batch.map(({ content, created_at }) => ({ content, created_at })) }
+    });
+    setLocalImprovements(validItems.slice(batch.length));
+    setImprovementStatus(`임시 저장되어 있던 개선사항 ${batch.length}개를 공유 게시판에 올렸습니다.`);
+  } catch (error) {
+    console.warn("Failed to upload local improvements", error);
+  } finally {
+    improvementUploadingLocal = false;
   }
-
-  improvementStorageMode = "remote";
-  renderImprovementList(data || []);
 }
 
 function startImprovementAutoRefresh() {
   stopImprovementAutoRefresh();
 
   improvementRefreshTimerId = window.setInterval(() => {
-    if (!infoModal.hidden && document.querySelector("#improvementList")) {
+    if (!document.hidden && !infoModal.hidden && document.querySelector("#improvementList")) {
       loadImprovements();
     }
   }, 5000);
-
-  if (!improvementStore?.channel) return;
-
-  improvementRealtimeChannel = improvementStore
-    .channel("improvement-items-live")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "improvement_items" },
-      () => {
-        if (!infoModal.hidden && document.querySelector("#improvementList")) {
-          loadImprovements();
-        }
-      }
-    )
-    .subscribe();
 }
 
 function stopImprovementAutoRefresh() {
@@ -2301,19 +2331,6 @@ function stopImprovementAutoRefresh() {
     window.clearInterval(improvementRefreshTimerId);
     improvementRefreshTimerId = null;
   }
-
-  if (improvementRealtimeChannel && improvementStore?.removeChannel) {
-    improvementStore.removeChannel(improvementRealtimeChannel);
-    improvementRealtimeChannel = null;
-  }
-}
-
-function showLocalImprovements(message) {
-  improvementStorageMode = "local";
-  renderImprovementList(getLocalImprovements(), {
-    isLocal: true,
-    message
-  });
 }
 
 function renderImprovementList(items, options = {}) {
@@ -2329,12 +2346,10 @@ function renderImprovementList(items, options = {}) {
     return;
   }
 
-  const authorId = getImprovementAuthorId();
   list.innerHTML = noticeHtml + items
     .map((item) => {
-      const isMine = options.isLocal || item.author_id === authorId;
       const createdAt = formatImprovementDate(item.created_at);
-      const mineActions = isMine
+      const mineActions = item.mine
         ? `
           <button class="mini-btn" type="button" data-edit-improvement="${escapeHtml(item.id)}">수정</button>
           <button class="delete-record-btn" type="button" data-delete-improvement="${escapeHtml(item.id)}">삭제</button>
@@ -2344,7 +2359,7 @@ function renderImprovementList(items, options = {}) {
       return `
         <article class="improvement-item">
           <div class="improvement-item-header">
-            <strong>${options.isLocal ? "내 임시 개선사항" : isMine ? "내 개선사항" : "공유 개선사항"}</strong>
+            <strong>${item.mine ? "내 개선사항" : "공유 개선사항"}</strong>
             <span>${escapeHtml(createdAt)}</span>
           </div>
           <p>${escapeHtml(item.content)}</p>
@@ -2361,48 +2376,44 @@ function renderImprovementList(items, options = {}) {
 async function saveImprovement(event) {
   event.preventDefault();
   const input = document.querySelector("#improvementInput");
+  const saveBtn = document.querySelector("#saveImprovementBtn");
   const editId = document.querySelector("#improvementEditId")?.value || "";
   const content = input?.value.trim() || "";
 
   if (!input || !content) return;
-  if (improvementStorageMode === "local" || !improvementStore) {
-    saveLocalImprovement(editId, content);
-    return;
-  }
 
   setImprovementStatus(editId ? "개선사항을 수정하는 중입니다." : "개선사항을 등록하는 중입니다.");
+  if (saveBtn) saveBtn.disabled = true;
 
-  const authorId = getImprovementAuthorId();
-  const query = editId
-    ? improvementStore
-      .from("improvement_items")
-      .update({ content, updated_at: new Date().toISOString() })
-      .eq("id", editId)
-      .eq("author_id", authorId)
-      .select("id")
-    : improvementStore
-      .from("improvement_items")
-      .insert({ content, author_id: authorId })
-      .select("id");
-
-  const { error } = await query;
-  if (error) {
-    console.warn("Failed to save improvement to Supabase", error);
-    improvementStorageMode = "local";
-    saveLocalImprovement(editId, content);
+  try {
+    await improvementRequest(
+      editId ? `/api/improvements/${encodeURIComponent(editId)}` : "/api/improvements",
+      { method: editId ? "PATCH" : "POST", body: { content } }
+    );
+  } catch (error) {
+    console.warn("Failed to save improvement", error);
+    setImprovementStatus(`저장하지 못했습니다. ${error.message}`, true);
     return;
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
   }
 
   resetImprovementForm();
   setImprovementStatus(editId ? "수정했습니다." : "등록했습니다.");
-  await refreshImprovementsAfterMutation();
+  await loadImprovements();
+}
+
+function findImprovementItem(id) {
+  const item = improvementItems?.find((improvement) => improvement.id === id);
+  if (!item) setImprovementStatus("개선사항 정보를 찾지 못했습니다.", true);
+  return item || null;
 }
 
 async function editImprovement(id) {
-  const item = await getImprovementById(id);
+  const item = findImprovementItem(id);
   if (!item) return;
 
-  if (item.author_id !== getImprovementAuthorId()) {
+  if (!item.mine) {
     setImprovementStatus("다른 사람이 입력한 개선사항은 수정할 수 없습니다.", true);
     return;
   }
@@ -2422,10 +2433,10 @@ async function editImprovement(id) {
 }
 
 async function deleteImprovement(id) {
-  const item = await getImprovementById(id);
+  const item = findImprovementItem(id);
   if (!item) return;
 
-  if (item.author_id !== getImprovementAuthorId()) {
+  if (!item.mine) {
     setImprovementStatus("다른 사람이 입력한 개선사항은 삭제할 수 없습니다.", true);
     return;
   }
@@ -2439,7 +2450,18 @@ async function deleteImprovement(id) {
   });
 
   if (!confirmed) return;
-  await removeImprovement(id, "삭제했습니다.");
+
+  try {
+    await improvementRequest(`/api/improvements/${encodeURIComponent(id)}`, { method: "DELETE" });
+  } catch (error) {
+    console.warn("Failed to delete improvement", error);
+    setImprovementStatus(`삭제하지 못했습니다. ${error.message}`, true);
+    return;
+  }
+
+  resetImprovementForm();
+  setImprovementStatus("삭제했습니다.");
+  await loadImprovements();
 }
 
 async function completeImprovement(id) {
@@ -2454,69 +2476,20 @@ async function completeImprovement(id) {
 
   if (password === null) return;
 
-  if (password !== IMPROVEMENT_COMPLETION_PASSWORD) {
-    setImprovementStatus("비밀번호가 맞지 않습니다.", true);
-    return;
-  }
-
-  await removeImprovement(id, "수정 완료 처리했습니다.");
-}
-
-async function removeImprovement(id, successMessage) {
-  if (improvementStorageMode === "local" || !improvementStore) {
-    removeLocalImprovement(id, successMessage);
-    return;
-  }
-
-  const { error } = await improvementStore
-    .from("improvement_items")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    console.warn("Failed to remove improvement from Supabase", error);
-    improvementStorageMode = "local";
-    removeLocalImprovement(id, successMessage);
+  try {
+    await improvementRequest(`/api/improvements/${encodeURIComponent(id)}/complete`, {
+      method: "POST",
+      body: { password }
+    });
+  } catch (error) {
+    console.warn("Failed to complete improvement", error);
+    setImprovementStatus(error.message, true);
     return;
   }
 
   resetImprovementForm();
-  setImprovementStatus(successMessage);
-  await refreshImprovementsAfterMutation();
-}
-
-async function refreshImprovementsAfterMutation() {
+  setImprovementStatus("수정 완료 처리했습니다.");
   await loadImprovements();
-  window.setTimeout(() => {
-    if (!infoModal.hidden && document.querySelector("#improvementList")) {
-      loadImprovements();
-    }
-  }, 350);
-}
-
-async function getImprovementById(id) {
-  if (improvementStorageMode === "local") {
-    const item = getLocalImprovements().find((improvement) => improvement.id === id);
-    if (!item) {
-      setImprovementStatus("개선사항 정보를 찾지 못했습니다.", true);
-    }
-    return item || null;
-  }
-
-  if (!improvementStore) return null;
-
-  const { data, error } = await improvementStore
-    .from("improvement_items")
-    .select("id, content, author_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error || !data) {
-    setImprovementStatus("개선사항 정보를 찾지 못했습니다.", true);
-    return null;
-  }
-
-  return data;
 }
 
 function getLocalImprovements() {
@@ -2530,40 +2503,6 @@ function getLocalImprovements() {
 
 function setLocalImprovements(items) {
   localStorage.setItem(LOCAL_IMPROVEMENTS_KEY, JSON.stringify(items));
-}
-
-function saveLocalImprovement(editId, content) {
-  const now = new Date().toISOString();
-  const authorId = getImprovementAuthorId();
-  const items = getLocalImprovements();
-
-  if (editId) {
-    const index = items.findIndex((item) => item.id === editId);
-    if (index >= 0) {
-      items[index] = { ...items[index], content, updated_at: now };
-    }
-  } else {
-    items.unshift({
-      id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      content,
-      author_id: authorId,
-      created_at: now,
-      updated_at: now
-    });
-  }
-
-  setLocalImprovements(items);
-  resetImprovementForm();
-  setImprovementStatus(editId ? "임시 저장소에 수정했습니다." : "임시 저장소에 등록했습니다.");
-  showLocalImprovements("공유 저장소에 연결하지 못해 이 브라우저에만 임시 저장 중입니다.");
-}
-
-function removeLocalImprovement(id, successMessage) {
-  const items = getLocalImprovements().filter((item) => item.id !== id);
-  setLocalImprovements(items);
-  resetImprovementForm();
-  setImprovementStatus(successMessage);
-  showLocalImprovements("공유 저장소에 연결하지 못해 이 브라우저에만 임시 저장 중입니다.");
 }
 
 function resetImprovementForm() {

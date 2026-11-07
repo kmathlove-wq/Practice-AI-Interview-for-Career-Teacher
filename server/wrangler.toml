@@ -1,0 +1,12 @@
+# 진로스터디 개선사항 서버 설정
+name = "career-study-improvements"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+# 개선사항 글을 저장하는 데이터베이스
+[[d1_databases]]
+binding = "DB"
+database_name = "career-study-improvements"
+database_id = "e734c152-367d-42e2-975c-0e1b4d8dd5bf"
+
+# '수정 완료' 비밀번호(COMPLETE_PASSWORD)는 여기에 쓰지 않는다. 클라우드플레어 비밀 설정에 있다.

@@ -38,7 +38,7 @@ python3 -m http.server 8000
 - `MediaRecorder`
 - `SpeechRecognition` / `webkitSpeechRecognition`
 - `localStorage`
-- Supabase 개선사항 저장소
+- 개선사항 서버: Cloudflare Worker + D1 (`server/`)
 - GitHub Pages
 
 ## 주요 상수
@@ -101,7 +101,7 @@ startPractice()
 | 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인, `#envStatusPopover` 진행 상태 팝업 열림 |
 | 질문 추가 | 기본/개인 질문을 개인 설정으로 추가·수정·삭제 |
 | 무작위 | 예약 질문 해제 |
-| 개선사항 | Supabase 개선사항 모달 열기 |
+| 개선사항 | 개선사항 모달 열기 |
 | 가이드 보기 | 면접 가이드 모달 열기 |
 | 기록 보기 | 최근 답변 기록 모달 열기 |
 | 삭제 | 해당 기록만 localStorage에서 삭제 |
@@ -143,14 +143,14 @@ startPractice()
 
 ### 개선사항
 
-- `개선사항` 버튼은 직접 만든 Supabase 개선사항 모달을 연다.
-- Supabase URL은 `https://habehqibpnazvsmefgew.supabase.co`다.
-- 개선사항은 `improvement_items` 테이블에 저장한다.
-- Supabase 연결 실패 시 개선사항은 `practiceInterviewLocalImprovements`에 개인 임시 저장으로 fallback한다.
-- 개선사항 모달이 열려 있는 동안 Realtime 구독과 5초 폴링으로 목록을 새로고침한다.
+- 개선사항은 직접 만든 서버 `https://career-study-improvements.cf-jjakkung.workers.dev`(코드 `server/worker.js`)와 D1 `career-study-improvements`의 `improvement_items` 테이블에 저장한다.
+- 서버를 고치면 `server/` 파일을 한글 없는 임시 폴더에 복사해 `npx wrangler deploy`한다(푸시만으로는 배포되지 않음). 새 사이트 주소를 쓰려면 `worker.js`의 `ALLOWED_ORIGINS`에 추가한다.
+- 글쓰기는 같은 접속 주소당 20초에 한 번이다.
+- 저장 실패는 오류로 알리고 글을 입력칸에 남긴다. 예전 임시 글(`practiceInterviewLocalImprovements`)은 모달을 열 때 서버로 올린다.
+- 개선사항 모달이 열려 있고 탭이 보이는 동안 5초마다 목록을 새로고침한다.
 - 개선사항 안내 모달의 `오늘 하루 안 보기` 날짜와 안내 버전은 `practiceInterviewImprovementPromoDismissDate`에 저장한다.
-- 현재 브라우저의 `practiceInterviewImprovementAuthorId`와 항목의 `author_id`가 같을 때만 수정/삭제 버튼을 표시한다.
-- `수정 완료`는 비밀번호 `1+1=1+1=1+1=1` 확인 후 항목을 삭제한다.
+- `practiceInterviewImprovementAuthorId`를 `X-Author-Id`로 보내고, 서버가 글쓴이를 비교해 `mine`일 때만 수정/삭제 버튼을 표시한다.
+- `수정 완료`는 서버가 비밀번호(Cloudflare 비밀 설정 `COMPLETE_PASSWORD`, 사본은 `~/.claude/secrets/.env`의 `CAREER_IMPROVEMENT_PASSWORD`)를 확인한 뒤 항목을 삭제한다.
 
 ## 스타일/레이아웃 주의사항
 
