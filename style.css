@@ -1651,7 +1651,7 @@ h1 {
   flex: 1 0 auto;
   display: grid;
   /* 창 높이가 낮으면 영상 칸이 줄고, 문제 칸과 시간 칸도 함께 가운데로 모인다. */
-  grid-template-columns: minmax(0, clamp(420px, calc((100vh - 340px) * 16 / 9), 852px)) 300px;
+  grid-template-columns: minmax(0, clamp(420px, calc((100vh - 370px) * 16 / 9), 852px)) 300px;
   grid-template-areas:
     "question question"
     "stage time";
@@ -1798,6 +1798,13 @@ h1 {
 .controls #submitBtn,
 .controls #deviceCheckBtn {
   grid-column: 1 / -1;
+}
+
+.site-credit {
+  padding: 0 16px 10px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 /* 평소에는 숨겨 두고 버튼을 누르면 오른쪽에서 열리는 칸 */
