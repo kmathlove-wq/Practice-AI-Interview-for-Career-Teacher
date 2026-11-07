@@ -87,7 +87,7 @@ startPractice()
   비동기 `stop` 이벤트(= `showRecordingResult()` 실행 완료)까지 기다리는 Promise를 반환한다.
 - `skipQuestion()`/`retryCurrentQuestion()`은 `stopActiveRecording()`을 반드시 `await`한 뒤
   `resetResult()`를 호출해야 건너뛴/재시도한 답변의 피드백이 먼저 렌더링된다.
-- 휴대폰·태블릿은 녹화와 음성 인식이 마이크를 함께 못 쓰는 경우가 많아 기본은 영상만 녹화하고 마이크를 음성 인식에 넘긴다(`practiceInterviewMobileCapture`, 연습 설정에서 소리 녹음 우선 선택 가능). 인식 오류는 `recognitionNotice`로 화면에 알린다.
+- 휴대폰·태블릿은 녹화와 음성 인식이 마이크를 함께 못 쓰는 경우가 많아 기본은 영상만 녹화하고 마이크를 음성 인식에 넘긴다(`practiceInterviewMobileCapture`, 연습 설정에서 소리 녹음 우선 선택 가능). 인식 오류는 `recognitionNotice`로 화면에 알린다. 휴대폰은 겹쳐 오는 인식 조각을 `mergeRecognizedPieces()`로 합친다.
 - HTTPS가 아니면 카메라/마이크가 안 될 수 있으므로 `getMediaSupportMessage()` 메시지를 유지한다.
 - 사용자 답변 영상/오디오는 서버에 업로드하지 않는다. 브라우저 메모리의 Object URL로만 재생한다.
 - 진행 상태 팝업(`#envStatusPopover`, `position:fixed`)은 `checkEnvironment()` 호출 시(녹화 시작 때는 영상을 가리지 않게 열지 않음) `positionEnvPopover()`로 `#deviceCheckBtn` 옆에 열리고 `#envPopoverCloseBtn`(X)로만 닫힌다.

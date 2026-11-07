@@ -707,6 +707,49 @@ function getSpeechRecognitionClass() {
   return window.SpeechRecognition || window.webkitSpeechRecognition || null;
 }
 
+// 휴대폰 음성 인식은 같은 말을 점점 커지는 조각이나 똑같은 조각으로 여러 번 보낸다.
+// 띄어쓰기를 무시하고 비교해, 겹치는 조각은 합치고 새로운 말만 뒤에 붙인다.
+function mergeRecognizedPieces(pieces) {
+  const compact = (text) => text.replace(/\s+/g, "");
+  const merged = [];
+
+  pieces.forEach((rawPiece) => {
+    const piece = String(rawPiece || "").trim();
+    if (!piece) return;
+    if (merged.length === 0) {
+      merged.push(piece);
+      return;
+    }
+
+    const lastIndex = merged.length - 1;
+    const lastKey = compact(merged[lastIndex]);
+    const key = compact(piece);
+
+    // 앞 조각이 더 길어진 것이면 긴 쪽으로 바꾼다.
+    if (key.includes(lastKey)) {
+      merged[lastIndex] = piece;
+      return;
+    }
+    // 이미 받은 말의 앞부분이나 끝부분을 다시 보낸 것이면 버린다.
+    if (lastKey.startsWith(key) || lastKey.endsWith(key)) return;
+    // 짧은 말("네" 등)은 다시 말했을 수 있으니, 어느 정도 긴 말만 전체에서 찾아 버린다.
+    if (key.length >= 8 && compact(merged.join("")).includes(key)) return;
+
+    // 앞 조각의 끝과 새 조각의 처음이 두 어절 이상 겹치면 겹친 부분을 뺀다.
+    const lastWords = merged[lastIndex].split(/\s+/);
+    const words = piece.split(/\s+/);
+    for (let size = Math.min(lastWords.length, words.length); size >= 2; size -= 1) {
+      if (lastWords.slice(-size).join(" ") === words.slice(0, size).join(" ")) {
+        merged.push(words.slice(size).join(" "));
+        return;
+      }
+    }
+    merged.push(piece);
+  });
+
+  return merged.filter(Boolean).join(" ");
+}
+
 function getRecognitionErrorMessage(errorCode) {
   const messages = {
     "not-allowed": "음성 인식 권한이 막혀 있습니다. 브라우저 설정에서 이 사이트의 마이크를 허용해 주세요.",
@@ -748,14 +791,10 @@ function startSpeechRecognition() {
 
   instance.addEventListener("result", (event) => {
     if (recognition !== instance) return;
-    const sessionTranscript = Array.from(event.results)
-      .map((result) => result[0].transcript)
-      .join(" ")
-      .trim();
-    const text = [recognitionCommittedTranscript, sessionTranscript]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
+    const pieces = Array.from(event.results).map((result) => result[0].transcript);
+    const text = isMobileDevice()
+      ? mergeRecognizedPieces([recognitionCommittedTranscript, ...pieces])
+      : [recognitionCommittedTranscript, pieces.join(" ").trim()].filter(Boolean).join(" ").trim();
 
     transcript = text;
     transcriptText.textContent = text || "음성을 듣고 있습니다...";
