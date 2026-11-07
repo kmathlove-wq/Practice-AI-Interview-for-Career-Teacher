@@ -78,6 +78,7 @@ const FALLBACK_QUESTIONS = [
 const ANSWER_SECONDS_OPTIONS = [90, 110, 180];
 const DEFAULT_ANSWER_SECONDS = 110;
 const RETRY_EARLY_WINDOW_SECONDS = 20;
+const ENDING_WARNING_SECONDS = 10;
 const ANSWER_DURATION_KEY = "practiceInterviewAnswerSeconds";
 const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
 const CUSTOM_QUESTIONS_KEY = "practiceInterviewCustomQuestions";
@@ -600,6 +601,7 @@ function updateTimer(remaining, total) {
   const elapsedRatio = total === 0 ? 0 : ((total - remaining) / total) * 100;
 
   timerText.textContent = `${minutes}:${seconds}`;
+  timerText.classList.toggle("is-ending", remaining <= ENDING_WARNING_SECONDS);
   progressBar.style.width = `${Math.min(100, Math.max(0, elapsedRatio))}%`;
   updateRetryAvailability();
 }
@@ -791,6 +793,7 @@ function stopCurrentTimer() {
     timerId = null;
   }
   currentTimerRemaining = 0;
+  timerText.classList.remove("is-ending");
   updateRetryAvailability();
 }
 

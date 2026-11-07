@@ -127,7 +127,7 @@ startPractice()
 .top-bar           → 로고/제목, .top-actions(#phaseLabel, 연습 설정, 답변 결과, 가이드, 기록, 개선사항)
 .question-box      → grid-area:question. #questionText
 .stage-panel       → grid-area:stage. .stage(#cameraState 배지, #cameraPreview, #cameraPlaceholder)
-.time-panel        → grid-area:time. #timerText, #progressBar, #timerTitle, #answerDurationToggle, .controls(#envStatusPopover 포함)
+.time-panel        → grid-area:time. #timerText, #progressBar, #timerTitle, #answerDurationToggle, .controls(#envStatusPopover 포함). 끝나기 10초 전부터 시간과 밑줄이 빨개짐(`is-ending`)
 #settingsPanel     → 오른쪽에서 열리는 칸. 질문 예약(.order-panel)
 #resultPanel       → 오른쪽에서 열리는 칸. #recordingState, 미디어 플레이어, transcript, feedback. 답변 종료 시 자동으로 열리고 답변 시작 시 닫힘
 #examReadyModal    → 응시 준비 창. 마이크 확인과 동의가 있어야 시험 시작 가능(`hasPassedExamReady`, 저장하지 않음)

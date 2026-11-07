@@ -1741,6 +1741,15 @@ h1 {
   line-height: 1.05;
 }
 
+/* 끝나기 10초 전부터 시간과 밑줄을 빨갛게 표시한다. */
+.time-value.is-ending {
+  color: var(--rec);
+}
+
+.time-panel:has(.time-value.is-ending) .progress-bar {
+  background: var(--rec);
+}
+
 .time-panel .progress-track {
   height: 4px;
   margin-top: 12px;
