@@ -1947,6 +1947,50 @@ h1 {
   outline-offset: 2px;
 }
 
+/* 휴대폰·태블릿 녹화 방식 고르기 */
+.capture-setting {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.capture-setting[hidden] {
+  display: none;
+}
+
+.capture-setting legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.capture-setting label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.capture-setting input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--primary-strong);
+}
+
+.capture-setting small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 /* 처음 시작할 때 나오는 응시 준비 창 */
 .exam-ready-panel {
   width: min(560px, 100%);

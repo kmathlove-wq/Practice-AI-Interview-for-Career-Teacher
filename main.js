@@ -81,6 +81,7 @@ const RETRY_EARLY_WINDOW_SECONDS = 20;
 const ENDING_WARNING_SECONDS = 10;
 const ANSWER_DURATION_KEY = "practiceInterviewAnswerSeconds";
 const RESULT_PANEL_OPEN_KEY = "practiceInterviewResultPanelOpen";
+const MOBILE_CAPTURE_KEY = "practiceInterviewMobileCapture";
 const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
 const CUSTOM_QUESTIONS_KEY = "practiceInterviewCustomQuestions";
 const DELETED_CUSTOM_QUESTIONS_KEY = "practiceInterviewDeletedCustomQuestions";
@@ -141,6 +142,7 @@ const openResultBtn = document.querySelector("#openResultBtn");
 const settingsPanel = document.querySelector("#settingsPanel");
 const resultPanel = document.querySelector("#resultPanel");
 const closeResultBtn = document.querySelector("#closeResultBtn");
+const mobileCaptureSetting = document.querySelector("#mobileCaptureSetting");
 const improvementPromoModal = document.querySelector("#improvementPromoModal");
 const promoCloseBtn = document.querySelector("#promoCloseBtn");
 const promoDismissTodayBtn = document.querySelector("#promoDismissTodayBtn");
@@ -196,6 +198,8 @@ let audioChunks = [];
 let recognition = null;
 let shouldRecognize = false;
 let transcript = "";
+let recognitionNotice = "";
+let isSilentVideoRecording = false;
 let recognitionCommittedTranscript = "";
 let phase = "idle";
 let recordingSessionId = 0;
@@ -224,6 +228,7 @@ function init() {
   renderPracticeHistory();
   loadAnswerDuration();
   loadResultPanelPreference();
+  setupMobileCaptureSetting();
   renderAnswerDurationButtons();
   answerDurationToggle.addEventListener("click", selectAnswerDuration);
   startBtn.addEventListener("click", startPractice);
@@ -624,6 +629,7 @@ async function startRecording() {
     const sessionId = recordingSessionId;
     audioChunks = [];
     isVideoRecording = audioStream.getVideoTracks().length > 0;
+    isSilentVideoRecording = isVideoRecording && audioStream.getAudioTracks().length === 0;
     recorder = new MediaRecorder(audioStream);
 
     recorder.addEventListener("dataavailable", (event) => {
@@ -649,7 +655,47 @@ async function startRecording() {
   }
 }
 
+// 휴대폰·태블릿은 녹화와 음성 인식이 마이크를 함께 쓰지 못하는 경우가 많다.
+function isMobileDevice() {
+  const userAgent = navigator.userAgent;
+  return /Android|iPhone|iPad|iPod/i.test(userAgent) || (/Macintosh/.test(userAgent) && navigator.maxTouchPoints > 1);
+}
+
+function getMobileCaptureMode() {
+  try {
+    return localStorage.getItem(MOBILE_CAPTURE_KEY) === "sound" ? "sound" : "text";
+  } catch {
+    return "text";
+  }
+}
+
+function setupMobileCaptureSetting() {
+  if (!isMobileDevice()) return;
+
+  mobileCaptureSetting.hidden = false;
+  const mode = getMobileCaptureMode();
+  mobileCaptureSetting.querySelectorAll('input[name="mobileCapture"]').forEach((input) => {
+    input.checked = input.value === mode;
+    input.addEventListener("change", () => {
+      try {
+        localStorage.setItem(MOBILE_CAPTURE_KEY, input.value);
+      } catch {
+        // 저장이 안 되는 브라우저에서는 기본값(글자 인식 우선)으로 동작한다.
+      }
+    });
+  });
+}
+
 async function getInterviewStream() {
+  // 글자 인식 우선: 영상만 녹화하고 마이크는 음성 인식에 넘긴다.
+  if (isMobileDevice() && getMobileCaptureMode() === "text" && getSpeechRecognitionClass()) {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ video: true });
+    } catch {
+      return navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+  }
+
   try {
     return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   } catch {
@@ -657,23 +703,51 @@ async function getInterviewStream() {
   }
 }
 
+function getSpeechRecognitionClass() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function getRecognitionErrorMessage(errorCode) {
+  const messages = {
+    "not-allowed": "음성 인식 권한이 막혀 있습니다. 브라우저 설정에서 이 사이트의 마이크를 허용해 주세요.",
+    "service-not-allowed": "이 브라우저에서 음성 인식을 사용할 수 없습니다. 휴대폰의 음성 인식 설정을 확인하거나 다른 브라우저를 사용해 주세요.",
+    "audio-capture": "음성 인식이 마이크를 사용하지 못했습니다. 다른 앱이 마이크를 쓰고 있는지 확인해 주세요.",
+    "language-not-supported": "이 기기에서는 한국어 음성 인식을 사용할 수 없습니다."
+  };
+  return messages[errorCode] || "";
+}
+
 function startSpeechRecognition() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const SpeechRecognition = getSpeechRecognitionClass();
   transcript = "";
   recognitionCommittedTranscript = "";
+  recognitionNotice = "";
   shouldRecognize = true;
 
-  if (!SpeechRecognition) {
-    transcriptText.textContent = "음성 인식은 이 브라우저에서 지원되지 않습니다. 녹음 파일은 답변 후 재생할 수 있습니다.";
+  if (isMobileDevice() && getMobileCaptureMode() === "sound") {
+    recognitionNotice = "소리 녹음 우선으로 설정되어 있어 글자 인식을 하지 않습니다. 연습 설정에서 바꿀 수 있습니다.";
+    transcriptText.textContent = recognitionNotice;
     return;
   }
 
-  recognition = new SpeechRecognition();
-  recognition.lang = "ko-KR";
-  recognition.continuous = true;
-  recognition.interimResults = true;
+  if (!SpeechRecognition) {
+    recognitionNotice = "음성 인식은 이 브라우저에서 지원되지 않습니다. 녹음 파일은 답변 후 재생할 수 있습니다.";
+    transcriptText.textContent = recognitionNotice;
+    return;
+  }
 
-  recognition.addEventListener("result", (event) => {
+  transcriptText.textContent = isSilentVideoRecording
+    ? "음성을 듣고 있습니다... 글자 인식을 위해 영상은 소리 없이 녹화됩니다."
+    : "음성을 듣고 있습니다...";
+
+  const instance = new SpeechRecognition();
+  recognition = instance;
+  instance.lang = "ko-KR";
+  instance.continuous = true;
+  instance.interimResults = true;
+
+  instance.addEventListener("result", (event) => {
+    if (recognition !== instance) return;
     const sessionTranscript = Array.from(event.results)
       .map((result) => result[0].transcript)
       .join(" ")
@@ -687,29 +761,52 @@ function startSpeechRecognition() {
     transcriptText.textContent = text || "음성을 듣고 있습니다...";
   });
 
-  recognition.addEventListener("end", () => {
-    if (shouldRecognize && phase === "answer") {
-      recognitionCommittedTranscript = transcript.trim();
-      try {
-        recognition.start();
-      } catch {
-        // Some browsers briefly reject immediate restarts.
-      }
+  // 말이 없어서 멈춘 경우 등은 아래 end에서 다시 시작하고, 고칠 수 없는 오류만 알려 준다.
+  instance.addEventListener("error", (event) => {
+    if (recognition !== instance) return;
+    const message = getRecognitionErrorMessage(event.error);
+    if (!message) return;
+
+    shouldRecognize = false;
+    recognitionNotice = message;
+    if (!transcript.trim()) {
+      transcriptText.textContent = message;
+    }
+  });
+
+  instance.addEventListener("end", () => {
+    if (recognition !== instance || !shouldRecognize || phase !== "answer") return;
+
+    recognitionCommittedTranscript = transcript.trim();
+    try {
+      instance.start();
+    } catch {
+      // 바로 다시 시작하면 거절하는 브라우저가 있어 잠시 뒤 한 번 더 시도한다.
+      window.setTimeout(() => {
+        if (recognition !== instance || !shouldRecognize || phase !== "answer") return;
+        try {
+          instance.start();
+        } catch {
+          // 다음 답변에서 다시 시작된다.
+        }
+      }, 300);
     }
   });
 
   try {
-    recognition.start();
+    instance.start();
   } catch {
-    transcriptText.textContent = "음성 인식을 시작하지 못했습니다. 녹음 파일은 답변 후 재생할 수 있습니다.";
+    recognitionNotice = "음성 인식을 시작하지 못했습니다. 녹음 파일은 답변 후 재생할 수 있습니다.";
+    transcriptText.textContent = recognitionNotice;
   }
 }
 
 function finishAnswer() {
   stopCurrentTimer();
   setPhase("done");
-  stopActiveRecording();
+  const recordingStopped = stopActiveRecording();
   finishPractice("답변 종료");
+  recordingStopped.then(scrollToResultOnNarrowScreen);
 }
 
 function finishPractice(message) {
@@ -720,6 +817,12 @@ function finishPractice(message) {
   updateRetryAvailability();
   timerTitle.textContent = message;
   progressBar.style.width = "100%";
+}
+
+// 좁은 화면은 결과 칸이 아래에 있어서, 답변이 끝나면 그 자리로 내려가 보여 준다.
+function scrollToResultOnNarrowScreen() {
+  if (resultPanel.hidden || !window.matchMedia("(max-width: 899px)").matches) return;
+  resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function showRecordingResult(sessionId) {
@@ -745,10 +848,13 @@ function showRecordingResult(sessionId) {
   phaseLabel.classList.remove("recording");
   cameraState.textContent = isVideoRecording ? "영상 저장 완료" : "카메라 미사용";
 
+  const silentVideoNote = isSilentVideoRecording ? "\n\n글자 인식을 위해 영상은 소리 없이 녹화되었습니다." : "";
   if (transcript.trim()) {
-    transcriptText.textContent = `인식된 답변:\n${transcript.trim()}`;
-  } else if (!transcriptText.textContent.includes("지원되지 않습니다")) {
-    transcriptText.textContent = "녹음은 완료되었습니다. 인식된 텍스트가 없으면 영상을 재생해 답변을 확인해 주세요.";
+    transcriptText.textContent = `인식된 답변:\n${transcript.trim()}${silentVideoNote}`;
+  } else if (recognitionNotice) {
+    transcriptText.textContent = `${recognitionNotice}${silentVideoNote}`;
+  } else {
+    transcriptText.textContent = `인식된 답변이 없습니다. 말소리가 잘 들리도록 마이크 가까이에서 다시 해 보세요.${silentVideoNote}`;
   }
 
   renderFeedback();

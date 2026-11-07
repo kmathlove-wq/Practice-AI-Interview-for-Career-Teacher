@@ -6,7 +6,7 @@
   <title>진로전담교사 면접 연습</title>
   <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
   <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
-  <link rel="stylesheet" href="style.css?v=20261107-8">
+  <link rel="stylesheet" href="style.css?v=20261107-9">
 </head>
 <body>
   <main class="app">
@@ -104,6 +104,17 @@
           <label class="question-picker-label" for="questionPicker">연습할 질문 선택</label>
           <select id="questionPicker" class="question-picker"></select>
         </div>
+        <fieldset id="mobileCaptureSetting" class="capture-setting" hidden>
+          <legend>휴대폰·태블릿 녹화 방식</legend>
+          <label>
+            <input type="radio" name="mobileCapture" value="text">
+            <span><strong>글자 인식 우선</strong><small>답변이 글자로 나오고, 영상은 소리 없이 녹화됩니다.</small></span>
+          </label>
+          <label>
+            <input type="radio" name="mobileCapture" value="sound">
+            <span><strong>소리 녹음 우선</strong><small>영상에 소리가 담기고, 글자 인식과 말하기 피드백은 나오지 않습니다.</small></span>
+          </label>
+        </fieldset>
       </aside>
 
       <aside id="resultPanel" class="result-dock" aria-labelledby="result-title">
@@ -212,6 +223,6 @@
     </section>
   </div>
 
-  <script src="main.js?v=20261107-7"></script>
+  <script src="main.js?v=20261107-9"></script>
 </body>
 </html>
