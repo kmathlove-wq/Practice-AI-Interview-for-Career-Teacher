@@ -109,6 +109,7 @@ const timerText = document.querySelector("#timerText");
 const progressBar = document.querySelector("#progressBar");
 const answerDurationToggle = document.querySelector("#answerDurationToggle");
 const startBtn = document.querySelector("#startBtn");
+const submitBtn = document.querySelector("#submitBtn");
 const skipBtn = document.querySelector("#skipBtn");
 const retryBtn = document.querySelector("#retryBtn");
 const deviceCheckBtn = document.querySelector("#deviceCheckBtn");
@@ -120,7 +121,6 @@ const videoPlayer = document.querySelector("#videoPlayer");
 const audioPlayer = document.querySelector("#audioPlayer");
 const transcriptText = document.querySelector("#transcriptText");
 const answerGuide = document.querySelector("#answerGuide");
-const environmentList = document.querySelector("#environmentList");
 const envPopover = document.querySelector("#envStatusPopover");
 const envPopoverCloseBtn = document.querySelector("#envPopoverCloseBtn");
 const feedbackBox = document.querySelector("#feedbackBox");
@@ -146,6 +146,12 @@ const infoModal = document.querySelector("#infoModal");
 const modalTitle = document.querySelector("#modalTitle");
 const modalBody = document.querySelector("#modalBody");
 const closeModalBtn = document.querySelector("#closeModalBtn");
+const examReadyModal = document.querySelector("#examReadyModal");
+const examReadyPreview = document.querySelector("#examReadyPreview");
+const examReadyRecheckBtn = document.querySelector("#examReadyRecheckBtn");
+const examReadyAgree = document.querySelector("#examReadyAgree");
+const examReadyError = document.querySelector("#examReadyError");
+const examReadyStartBtn = document.querySelector("#examReadyStartBtn");
 const confirmModal = document.querySelector("#confirmModal");
 const confirmTitle = document.querySelector("#confirmTitle");
 const confirmMessage = document.querySelector("#confirmMessage");
@@ -194,6 +200,8 @@ let answerStartedAt = 0;
 let isVideoRecording = false;
 let reservedQuestion = "";
 let currentTimerRemaining = 0;
+let hasPassedExamReady = false;
+let isExamReadyMicOk = false;
 let answerSeconds = DEFAULT_ANSWER_SECONDS;
 let activeConfirmDialog = null;
 let improvementRefreshTimerId = null;
@@ -215,7 +223,14 @@ function init() {
   renderAnswerDurationButtons();
   answerDurationToggle.addEventListener("click", selectAnswerDuration);
   startBtn.addEventListener("click", startPractice);
+  submitBtn.addEventListener("click", submitAnswer);
   skipBtn.addEventListener("click", skipQuestion);
+  examReadyRecheckBtn.addEventListener("click", runExamReadyCheck);
+  examReadyAgree.addEventListener("change", updateExamReadyStart);
+  examReadyStartBtn.addEventListener("click", startExamFromReady);
+  examReadyModal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-exam-ready-close]")) closeExamReady();
+  });
   retryBtn.addEventListener("click", retryCurrentQuestion);
   deviceCheckBtn.addEventListener("click", checkEnvironment);
   envPopoverCloseBtn.addEventListener("click", hideEnvPopover);
@@ -267,6 +282,11 @@ function init() {
     }
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !examReadyModal.hidden) {
+      closeExamReady();
+      return;
+    }
+
     if (event.key === "Escape" && !confirmModal.hidden) {
       cancelConfirmDialog();
       return;
@@ -391,9 +411,80 @@ async function startPractice() {
     showNoEnabledQuestionMessage();
     return;
   }
+  if (!hasPassedExamReady) {
+    openExamReady();
+    return;
+  }
   resetResult();
   pickRandomQuestion();
   await runCurrentQuestion();
+}
+
+// 처음 시작할 때 한 번만 유의사항을 확인하고 카메라·마이크를 점검한다. 새로고침하면 다시 나온다.
+function openExamReady() {
+  examReadyAgree.checked = false;
+  examReadyError.textContent = "";
+  examReadyModal.hidden = false;
+  examReadyAgree.focus();
+  // 앞선 확인이 아직 진행 중이면 카메라가 겹쳐 켜지지 않게 새로 시작하지 않는다.
+  if (!examReadyRecheckBtn.disabled) runExamReadyCheck();
+}
+
+async function runExamReadyCheck() {
+  isExamReadyMicOk = false;
+  examReadyRecheckBtn.disabled = true;
+  examReadyPreview.srcObject = null;
+  examReadyPreview.hidden = true;
+  examReadyError.textContent = "";
+  updateExamReadyStart();
+
+  const micOk = await checkDevices();
+  examReadyRecheckBtn.disabled = false;
+
+  // 확인하는 사이에 창을 닫았다면 켜진 카메라를 바로 끈다.
+  if (examReadyModal.hidden) {
+    releaseExamReadyCamera();
+    return;
+  }
+
+  isExamReadyMicOk = micOk;
+  if (previewStream?.getVideoTracks().length) {
+    examReadyPreview.srcObject = previewStream;
+    examReadyPreview.hidden = false;
+  }
+  examReadyError.textContent = micOk ? "" : "답변을 녹음하려면 마이크가 필요합니다. 브라우저에서 마이크를 허용한 뒤 다시 확인을 눌러 주세요.";
+  updateExamReadyStart();
+}
+
+function updateExamReadyStart() {
+  examReadyStartBtn.disabled = !examReadyAgree.checked || !isExamReadyMicOk;
+}
+
+function releaseExamReadyCamera() {
+  stopPreviewStream();
+  examReadyPreview.srcObject = null;
+  cameraPreview.srcObject = null;
+  cameraPlaceholder.hidden = false;
+  cameraState.textContent = "카메라 대기";
+}
+
+function closeExamReady() {
+  examReadyModal.hidden = true;
+  releaseExamReadyCamera();
+  startBtn.focus();
+}
+
+function startExamFromReady() {
+  hasPassedExamReady = true;
+  examReadyModal.hidden = true;
+  examReadyPreview.srcObject = null;
+  startPractice();
+}
+
+// 시간이 남아도 답변을 끝내고 결과를 본다. 다시 시작 중에는 받지 않는다.
+function submitAnswer() {
+  if (phase !== "answer" || !timerId) return;
+  finishAnswer();
 }
 
 async function skipQuestion() {
@@ -545,7 +636,7 @@ async function startRecording() {
     cameraState.textContent = isVideoRecording ? "카메라 녹화 중" : "음성만 녹음";
     return true;
   } catch {
-    // 시계 안에는 '마이크 필요'만 보이므로, 자세한 안내는 넓은 녹음 결과 칸에 보여 준다.
+    // 시간 아래에는 '마이크 필요'만 보이므로, 자세한 안내는 넓은 답변 결과 칸에 보여 준다.
     transcriptText.textContent = "마이크 권한을 허용하면 답변 녹음을 시작할 수 있습니다.";
     return false;
   }
@@ -733,6 +824,8 @@ function setPhase(nextPhase) {
   };
 
   phaseLabel.textContent = labels[nextPhase] || labels.idle;
+  startBtn.hidden = nextPhase === "answer";
+  submitBtn.hidden = nextPhase !== "answer";
   updateRetryAvailability();
   renderAnswerDurationButtons();
 }
@@ -847,12 +940,16 @@ function positionEnvPopover() {
 
 async function checkEnvironment() {
   showEnvPopover();
+  await checkDevices();
+}
 
+// 카메라와 마이크를 확인해 화면의 확인 목록을 고치고, 마이크를 쓸 수 있는지 돌려준다.
+async function checkDevices() {
   if (!navigator.mediaDevices?.getUserMedia) {
     const message = getMediaSupportMessage("카메라와 마이크 확인");
     updateEnvironmentItem("camera", message, false);
     updateEnvironmentItem("microphone", message, false);
-    return;
+    return false;
   }
 
   stopPreviewStream();
@@ -863,16 +960,19 @@ async function checkEnvironment() {
     updateEnvironmentItem("camera", "카메라 권한 확인 완료", true);
     updateEnvironmentItem("microphone", "마이크 권한 확인 완료", true);
     cameraState.textContent = "환경 체크 완료";
+    return true;
   } catch {
     try {
       previewStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       updateEnvironmentItem("camera", "카메라 권한이 없어 음성만 사용할 수 있습니다.", false);
       updateEnvironmentItem("microphone", "마이크 권한 확인 완료", true);
       cameraState.textContent = "음성만 가능";
+      return true;
     } catch {
       updateEnvironmentItem("camera", "카메라 권한을 확인하지 못했습니다.", false);
       updateEnvironmentItem("microphone", "마이크 권한을 확인하지 못했습니다.", false);
       cameraState.textContent = "권한 필요";
+      return false;
     }
   }
 }
@@ -887,11 +987,10 @@ function attachPreview(stream) {
 }
 
 function updateEnvironmentItem(checkName, message, passed) {
-  const item = environmentList.querySelector(`[data-check="${checkName}"]`);
-  if (!item) return;
-
-  item.textContent = message;
-  item.classList.toggle("passed", passed);
+  document.querySelectorAll(`[data-check="${checkName}"]`).forEach((item) => {
+    item.textContent = message;
+    item.classList.toggle("passed", passed);
+  });
 }
 
 function getMediaSupportMessage(featureName) {

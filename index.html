@@ -6,7 +6,7 @@
   <title>진로전담교사 면접 연습</title>
   <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
   <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
-  <link rel="stylesheet" href="style.css?v=20261107-3">
+  <link rel="stylesheet" href="style.css?v=20261107-4">
 </head>
 <body>
   <main class="app">
@@ -65,6 +65,7 @@
 
           <section class="controls" aria-label="연습 조작">
             <button id="startBtn" class="primary-btn" type="button">시작</button>
+            <button id="submitBtn" class="primary-btn" type="button" hidden>답변 제출</button>
             <button id="skipBtn" class="secondary-btn" type="button" disabled>질문 건너뛰기</button>
             <button id="retryBtn" class="secondary-btn" type="button" disabled>다시 시작</button>
             <button id="deviceCheckBtn" class="secondary-btn" type="button">응시 환경 체크</button>
@@ -175,6 +176,42 @@
     </section>
   </div>
 
-  <script src="main.js?v=20261107-3"></script>
+  <div id="examReadyModal" class="confirm-modal" hidden>
+    <div class="confirm-backdrop" data-exam-ready-close></div>
+    <section class="confirm-panel exam-ready-panel" role="dialog" aria-modal="true" aria-labelledby="examReadyTitle">
+      <button class="confirm-close-btn" type="button" aria-label="닫기" data-exam-ready-close>×</button>
+      <h2 id="examReadyTitle">응시 준비</h2>
+
+      <p class="section-label exam-ready-label">유의사항</p>
+      <ul class="exam-ready-notes">
+        <li>시험 시작을 누르면 문제가 바로 나오고, 준비 시간 없이 녹화가 시작됩니다.</li>
+        <li>선택한 시간이 끝나면 답변이 자동으로 제출됩니다. 일찍 마치면 답변 제출을 누르세요.</li>
+        <li>답변 중에 시간을 바꾸면 같은 문제를 처음부터 다시 녹화합니다.</li>
+        <li>녹화 영상은 서버에 올라가지 않고 이 브라우저 안에서만 재생됩니다.</li>
+      </ul>
+
+      <div class="exam-ready-device-header">
+        <p class="section-label exam-ready-label">카메라·마이크 확인</p>
+        <button id="examReadyRecheckBtn" class="mini-btn" type="button">다시 확인</button>
+      </div>
+      <video id="examReadyPreview" class="exam-ready-preview" autoplay muted playsinline hidden></video>
+      <ul class="check-list exam-ready-checks">
+        <li data-check="camera">카메라 권한 확인 전</li>
+        <li data-check="microphone">마이크 권한 확인 전</li>
+      </ul>
+
+      <label class="exam-ready-agree">
+        <input id="examReadyAgree" type="checkbox">
+        <span>위 유의사항을 확인했습니다.</span>
+      </label>
+      <div id="examReadyError" class="confirm-error" aria-live="polite"></div>
+      <div class="confirm-actions">
+        <button class="confirm-secondary-btn" type="button" data-exam-ready-close>취소</button>
+        <button id="examReadyStartBtn" class="confirm-primary-btn" type="button" disabled>시험 시작</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="main.js?v=20261107-4"></script>
 </body>
 </html>

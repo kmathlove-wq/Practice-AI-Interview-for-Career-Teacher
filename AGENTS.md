@@ -95,7 +95,8 @@ startPractice()
 
 | 버튼 | 동작 |
 |---|---|
-| 시작 / 새 질문 시작 | 새 질문 선택 후 바로 답변 녹화 시작 |
+| 시작 / 새 질문 시작 | 페이지를 연 뒤 처음이면 응시 준비 창(유의사항 동의, 카메라·마이크 확인), 이후에는 새 질문 선택 후 바로 답변 녹화 시작 |
+| 답변 제출 | 답변 중에 시작 버튼 자리에 나타남. 시간이 남아도 답변을 끝내고 결과 칸을 연다 |
 | 질문 건너뛰기 | 현재 녹화/타이머를 멈추고 다른 질문으로 진행 |
 | 다시 시작 | 답변 시작 후 20초 이내 또는 답변 종료 후, 같은 질문 재시작 |
 | 응시 환경 체크 | 카메라/마이크 권한 및 미리보기 확인, `#envStatusPopover` 진행 상태 팝업 열림 |
@@ -129,6 +130,7 @@ startPractice()
 .time-panel        → grid-area:time. #timerText, #progressBar, #timerTitle, #answerDurationToggle, .controls(#envStatusPopover 포함)
 #settingsPanel     → 오른쪽에서 열리는 칸. 질문 예약(.order-panel)
 #resultPanel       → 오른쪽에서 열리는 칸. #recordingState, 미디어 플레이어, transcript, feedback. 답변 종료 시 자동으로 열리고 답변 시작 시 닫힘
+#examReadyModal    → 응시 준비 창. 마이크 확인과 동의가 있어야 시험 시작 가능(`hasPassedExamReady`, 저장하지 않음)
 .sr-only           → #answerGuide/#practiceHistory/#historyCount 값만 유지, 가이드/기록 모달이 innerHTML 복사
 #infoModal          → 가이드/기록/개선사항 모달
 #confirmModal       → 개선사항 삭제/수정 완료 확인 모달
