@@ -6,53 +6,92 @@
   <title>진로전담교사 면접 연습</title>
   <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
   <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
-  <link rel="stylesheet" href="style.css?v=20261011-1">
+  <link rel="stylesheet" href="style.css?v=20261107-3">
 </head>
 <body>
   <main class="app">
     <section class="practice-panel" aria-labelledby="app-title">
-      <div class="top-bar">
+      <header class="top-bar">
         <div class="brand">
           <img src="assets/interview-compass-mark.png" alt="" class="brand-logo">
-          <div>
-            <p class="eyebrow">Career Teacher Interview</p>
-            <h1 id="app-title">진로전담교사 면접 연습</h1>
-          </div>
+          <h1 id="app-title">진로전담교사 면접 연습</h1>
         </div>
         <div class="top-actions">
-          <button id="openImprovementsBtn" class="mini-btn" type="button">개선사항</button>
           <div class="status-pill" id="phaseLabel">대기 중</div>
+          <button id="openSettingsBtn" class="mini-btn" type="button" aria-expanded="false" aria-controls="settingsPanel">연습 설정</button>
+          <button id="openResultBtn" class="mini-btn" type="button" aria-expanded="false" aria-controls="resultPanel">답변 결과</button>
+          <button id="openGuideBtn" class="mini-btn" type="button">가이드 보기</button>
+          <button id="openHistoryBtn" class="mini-btn" type="button">기록 보기</button>
+          <button id="openImprovementsBtn" class="mini-btn" type="button">개선사항</button>
         </div>
-      </div>
+      </header>
 
-      <article class="tool-panel nav-panel">
-        <div class="timer-card">
-          <p class="section-label">답변 남은 시간</p>
-          <div class="timer-ring-wrap">
-            <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
-              <circle class="ring-track" cx="70" cy="70" r="54"></circle>
-              <circle class="ring-progress" id="timerRing" cx="70" cy="70" r="54"
-                stroke-dasharray="339.3" stroke-dashoffset="0"></circle>
-            </svg>
-            <div class="timer-center">
-              <strong id="timerText">00:00</strong>
-              <p id="timerTitle">준비 완료</p>
+      <div class="exam-layout">
+        <section class="question-box placeholder-question" aria-live="polite">
+          <p class="section-label">면접 질문</p>
+          <h2 id="questionText">시작 버튼을 누르면 예상 질문이 무작위로 선택됩니다.</h2>
+        </section>
+
+        <article class="stage-panel">
+          <p class="section-label">영상 녹화</p>
+          <div class="camera-preview-wrap stage">
+            <span id="cameraState" class="badge-status">카메라 대기</span>
+            <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
+            <div id="cameraPlaceholder" class="camera-placeholder">
+              <div class="cam-icon">
+                <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <path d="M4 8.5a1.5 1.5 0 0 1 1.5-1.5h2l1-1.5h7l1 1.5h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z" />
+                  <circle cx="12" cy="13" r="3.4" />
+                </svg>
+              </div>
+              <p class="hint">카메라 권한을 허용하면<br>미리보기가 시작됩니다.</p>
             </div>
           </div>
+        </article>
+
+        <aside class="time-panel" aria-label="시간과 연습 조작">
+          <p class="section-label">남은 시간</p>
+          <strong id="timerText" class="time-value">00:00</strong>
+          <div class="progress-track" aria-hidden="true">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+          <p id="timerTitle" class="time-title">준비 완료</p>
+
           <div id="answerDurationToggle" class="duration-toggle" role="group" aria-label="답변 시간 고르기">
             <button class="duration-btn" type="button" data-answer-seconds="90">1분 30초</button>
             <button class="duration-btn" type="button" data-answer-seconds="110">1분 50초</button>
             <button class="duration-btn" type="button" data-answer-seconds="180">3분</button>
           </div>
-        </div>
 
-        <div class="order-panel">
-          <div class="result-header">
-            <div>
-              <p class="section-label">질문 리스트</p>
-              <h3>다음 질문 예약</h3>
+          <section class="controls" aria-label="연습 조작">
+            <button id="startBtn" class="primary-btn" type="button">시작</button>
+            <button id="skipBtn" class="secondary-btn" type="button" disabled>질문 건너뛰기</button>
+            <button id="retryBtn" class="secondary-btn" type="button" disabled>다시 시작</button>
+            <button id="deviceCheckBtn" class="secondary-btn" type="button">응시 환경 체크</button>
+
+            <div id="envStatusPopover" class="env-popover" hidden>
+              <div class="env-popover-header">
+                <p class="section-label">진행 상태</p>
+                <button id="envPopoverCloseBtn" class="env-popover-close" type="button" aria-label="닫기">×</button>
+              </div>
+              <ul class="check-list" id="environmentList">
+                <li data-check="camera">카메라 권한 확인 전</li>
+                <li data-check="microphone">마이크 권한 확인 전</li>
+                <li data-check="place">밝은 장소와 안정된 자세를 준비하세요.</li>
+              </ul>
             </div>
-          </div>
+          </section>
+        </aside>
+      </div>
+
+      <aside id="settingsPanel" class="side-panel" aria-labelledby="settingsPanelTitle" hidden>
+        <div class="side-panel-header">
+          <h2 id="settingsPanelTitle">연습 설정</h2>
+          <button class="mini-btn" type="button" data-close-panel>닫기</button>
+        </div>
+        <div class="order-panel">
+          <p class="section-label">질문 리스트</p>
+          <h3>다음 질문 예약</h3>
           <div class="reservation-actions">
             <span id="reservedQuestionState" class="chip">예약 없음</span>
             <button id="openCustomQuestionBtn" class="mini-btn" type="button">질문 추가</button>
@@ -62,71 +101,23 @@
           <label class="question-picker-label" for="questionPicker">연습할 질문 선택</label>
           <select id="questionPicker" class="question-picker"></select>
         </div>
+      </aside>
 
-        <section class="controls" aria-label="연습 조작">
-          <button id="startBtn" class="primary-btn" type="button">시작</button>
-          <button id="skipBtn" class="secondary-btn" type="button" disabled>질문 건너뛰기</button>
-          <button id="retryBtn" class="secondary-btn" type="button" disabled>다시 시작</button>
-          <button id="deviceCheckBtn" class="secondary-btn" type="button">응시 환경 체크</button>
-
-          <div id="envStatusPopover" class="env-popover" hidden>
-            <div class="env-popover-header">
-              <p class="section-label">진행 상태</p>
-              <button id="envPopoverCloseBtn" class="env-popover-close" type="button" aria-label="닫기">×</button>
-            </div>
-            <ul class="check-list" id="environmentList">
-              <li data-check="camera">카메라 권한 확인 전</li>
-              <li data-check="microphone">마이크 권한 확인 전</li>
-              <li data-check="place">밝은 장소와 안정된 자세를 준비하세요.</li>
-            </ul>
-          </div>
+      <aside id="resultPanel" class="side-panel" aria-labelledby="result-title" hidden>
+        <div class="side-panel-header">
+          <h2 id="result-title">답변 결과</h2>
+          <span id="recordingState">녹음 전</span>
+          <button class="mini-btn" type="button" data-close-panel>닫기</button>
+        </div>
+        <section class="result-box answer-result">
+          <video id="videoPlayer" class="recorded-video" controls hidden></video>
+          <audio id="audioPlayer" controls hidden></audio>
+          <p id="transcriptText" class="placeholder">
+            답변 시간이 끝나면 녹음 파일과 음성 인식 텍스트가 이곳에 표시됩니다.
+          </p>
+          <div id="feedbackBox" class="feedback-box" hidden></div>
         </section>
-      </article>
-
-      <section class="question-box placeholder-question" aria-live="polite">
-        <p class="section-label">면접 질문</p>
-        <h2 id="questionText">시작 버튼을 누르면 예상 질문이 무작위로 선택됩니다.</h2>
-      </section>
-
-      <article class="tool-panel stage-panel">
-        <p class="section-label">영상면접 · 카메라 미리보기</p>
-        <div class="camera-preview-wrap stage">
-          <span id="cameraState" class="badge-status">카메라 대기</span>
-          <video id="cameraPreview" class="camera-preview" autoplay muted playsinline></video>
-          <div id="cameraPlaceholder" class="camera-placeholder">
-            <div class="cam-icon">
-              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
-                <path d="M4 8.5a1.5 1.5 0 0 1 1.5-1.5h2l1-1.5h7l1 1.5h2A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z" />
-                <circle cx="12" cy="13" r="3.4" />
-              </svg>
-            </div>
-            <p class="hint">카메라 권한을 허용하면<br>미리보기가 시작됩니다.</p>
-          </div>
-        </div>
-        <div class="progress-track" aria-hidden="true">
-          <div id="progressBar" class="progress-bar"></div>
-        </div>
-      </article>
-
-      <section class="result-box answer-result" aria-labelledby="result-title">
-        <div class="result-header">
-          <div>
-            <p class="section-label">답변 출력</p>
-            <h3 id="result-title">녹음 결과</h3>
-          </div>
-          <div class="result-actions">
-            <button id="openGuideBtn" class="mini-btn" type="button">가이드 보기</button>
-            <button id="openHistoryBtn" class="mini-btn" type="button">기록 보기</button>
-            <span id="recordingState">녹음 전</span>
-          </div>
-        </div>
-        <video id="videoPlayer" class="recorded-video" controls hidden></video>
-        <audio id="audioPlayer" controls hidden></audio>
-        <p id="transcriptText" class="placeholder">
-          답변 시간이 끝나면 녹음 파일과 음성 인식 텍스트가 이곳에 표시됩니다.
-        </p>
-        <div id="feedbackBox" class="feedback-box" hidden></div>
-      </section>
+      </aside>
 
       <div class="sr-only" aria-hidden="true">
         <div id="answerGuide"></div>
@@ -184,6 +175,6 @@
     </section>
   </div>
 
-  <script src="main.js?v=20261107-1"></script>
+  <script src="main.js?v=20261107-3"></script>
 </body>
 </html>

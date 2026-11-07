@@ -45,7 +45,7 @@ python3 -m http.server 8000
 
 | 상수 | 값 | 설명 |
 |---|---:|---|
-| `answerSeconds` | 90 / 110 / 180 | 답변 녹화 시간(기본 110). 시계 아래 버튼으로 선택(`practiceInterviewAnswerSeconds`), 답변 중에만 잠금. 준비 시간은 없음 |
+| `answerSeconds` | 90 / 110 / 180 | 답변 녹화 시간(기본 110). 시간 아래 버튼으로 선택(`practiceInterviewAnswerSeconds`). 답변 중에 바꾸면 같은 문제를 새 시간으로 처음부터 다시 녹화하고 그때까지의 녹화는 버림. 준비 시간은 없음 |
 
 타이머 시간은 사용자 요청 없이 변경하지 않는다.
 
@@ -89,7 +89,7 @@ startPractice()
   `resetResult()`를 호출해야 건너뛴/재시도한 답변의 피드백이 먼저 렌더링된다.
 - HTTPS가 아니면 카메라/마이크가 안 될 수 있으므로 `getMediaSupportMessage()` 메시지를 유지한다.
 - 사용자 답변 영상/오디오는 서버에 업로드하지 않는다. 브라우저 메모리의 Object URL로만 재생한다.
-- 진행 상태 팝업(`#envStatusPopover`, `position:fixed`)은 `checkEnvironment()`/`attachPreview()` 호출 시 `positionEnvPopover()`로 `#deviceCheckBtn` 옆에 열리고 `#envPopoverCloseBtn`(X)로만 닫힌다.
+- 진행 상태 팝업(`#envStatusPopover`, `position:fixed`)은 `checkEnvironment()` 호출 시(녹화 시작 때는 영상을 가리지 않게 열지 않음) `positionEnvPopover()`로 `#deviceCheckBtn` 옆에 열리고 `#envPopoverCloseBtn`(X)로만 닫힌다.
 
 ### 버튼 동작
 
@@ -118,24 +118,18 @@ startPractice()
 - `renderPracticeHistory()`는 `질문:` / `답변:` 라벨로 전체 답변을 표시한다.
 - 기록의 `삭제` 버튼은 해당 항목만 localStorage에서 제거한다.
 
-## DOM 주요 영역 (2026-08-02 좌측 내비 · 중앙 · 우측 결과 3단 레이아웃으로 개편)
+## DOM 주요 영역 (2026-11-07 검은 시험장 화면으로 개편)
 
-레이아웃 참고 원본: `C:\Users\kmath\Downloads\interview_layout_redesign.html` (정적 목업, 실제 동작 없음).
-데스크톱(≥900px)은 `.practice-panel`이 `grid-template-areas: "top top top" / "nav question result"
-/ "nav stage result"`로 배치한다(2026-08-10, controls를 nav-panel 안으로 옮기며 controls 행 제거).
-900px 미만은 일반 블록 스택이라 DOM 순서가 곧 화면 순서다.
+`.exam-layout`이 위에 문제, 아래 왼쪽에 영상, 오른쪽에 시간을 배치한다(사용자 스케치 기준). 900px 미만은 문제→영상→시간 순서의 세로 배치다.
 
 ```
-.top-bar            → 로고/제목/상태 표시
-.top-actions        → #openImprovementsBtn, #phaseLabel
-.nav-panel           → grid-area:nav. 안에 .timer-card(원형 타이머), .order-panel, .controls 포함
-.timer-card          → #timerRing(SVG 원형 진행률), #timerText, #timerTitle
-.order-panel          → #reservedQuestionState, #openCustomQuestionBtn, #randomQuestionBtn, #questionPicker
-.question-box       → grid-area:question. #questionText
-.stage-panel         → grid-area:stage. .stage(#cameraState 배지, #cameraPreview, #cameraPlaceholder) + #progressBar
-.controls           → 시작, 건너뛰기, 다시 시작, 환경 체크, #envStatusPopover. margin-top:auto로 nav-panel 맨 아래에 고정
-.answer-result      → grid-area:result. 결과 버튼, 미디어 플레이어, transcript, feedback
-.sr-only            → #answerGuide/#practiceHistory/#historyCount 값만 유지, 가이드/기록 모달이 innerHTML 복사
+.top-bar           → 로고/제목, .top-actions(#phaseLabel, 연습 설정, 답변 결과, 가이드, 기록, 개선사항)
+.question-box      → grid-area:question. #questionText
+.stage-panel       → grid-area:stage. .stage(#cameraState 배지, #cameraPreview, #cameraPlaceholder)
+.time-panel        → grid-area:time. #timerText, #progressBar, #timerTitle, #answerDurationToggle, .controls(#envStatusPopover 포함)
+#settingsPanel     → 오른쪽에서 열리는 칸. 질문 예약(.order-panel)
+#resultPanel       → 오른쪽에서 열리는 칸. #recordingState, 미디어 플레이어, transcript, feedback. 답변 종료 시 자동으로 열리고 답변 시작 시 닫힘
+.sr-only           → #answerGuide/#practiceHistory/#historyCount 값만 유지, 가이드/기록 모달이 innerHTML 복사
 #infoModal          → 가이드/기록/개선사항 모달
 #confirmModal       → 개선사항 삭제/수정 완료 확인 모달
 #improvementPromoModal → 개선사항 기능 안내 모달
@@ -154,8 +148,8 @@ startPractice()
 
 ## 스타일/레이아웃 주의사항
 
-- 데스크톱은 `@media (min-width: 900px)`에서 한 화면형 면접 대시보드로 고정한다.
-- 모바일/좁은 화면은 일반 스크롤을 허용한다.
+- 전체 색은 `style.css` 맨 위 변수로 관리하는 검은 화면이다. 창 높이가 낮으면 영상 크기를 줄여 한 화면에 맞춘다.
+- 모든 화면에서 내용이 넘치면 일반 스크롤을 허용한다.
 - 질문이 길면 `.long-question`, `.very-long-question`로 글자 크기를 낮춘다.
 - `가이드 보기`와 `기록 보기`는 모달로 열며 기본 화면을 과도하게 차지하지 않게 한다.
 - 카드 radius는 기존 8px 계열을 유지한다.

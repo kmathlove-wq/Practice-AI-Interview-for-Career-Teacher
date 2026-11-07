@@ -107,7 +107,6 @@ const phaseLabel = document.querySelector("#phaseLabel");
 const timerTitle = document.querySelector("#timerTitle");
 const timerText = document.querySelector("#timerText");
 const progressBar = document.querySelector("#progressBar");
-const timerRing = document.querySelector("#timerRing");
 const answerDurationToggle = document.querySelector("#answerDurationToggle");
 const startBtn = document.querySelector("#startBtn");
 const skipBtn = document.querySelector("#skipBtn");
@@ -135,6 +134,10 @@ const reservedQuestionState = document.querySelector("#reservedQuestionState");
 const openImprovementsBtn = document.querySelector("#openImprovementsBtn");
 const openGuideBtn = document.querySelector("#openGuideBtn");
 const openHistoryBtn = document.querySelector("#openHistoryBtn");
+const openSettingsBtn = document.querySelector("#openSettingsBtn");
+const openResultBtn = document.querySelector("#openResultBtn");
+const settingsPanel = document.querySelector("#settingsPanel");
+const resultPanel = document.querySelector("#resultPanel");
 const improvementPromoModal = document.querySelector("#improvementPromoModal");
 const promoCloseBtn = document.querySelector("#promoCloseBtn");
 const promoDismissTodayBtn = document.querySelector("#promoDismissTodayBtn");
@@ -242,6 +245,11 @@ function init() {
       closeImprovementPromo();
     }
   });
+  openSettingsBtn.addEventListener("click", () => toggleSidePanel(settingsPanel, openSettingsBtn));
+  openResultBtn.addEventListener("click", () => toggleSidePanel(resultPanel, openResultBtn));
+  document.querySelectorAll("[data-close-panel]").forEach((button) => {
+    button.addEventListener("click", closeSidePanels);
+  });
   closeModalBtn.addEventListener("click", closeInfoModal);
   confirmCloseBtn.addEventListener("click", cancelConfirmDialog);
   confirmActions.addEventListener("click", handleConfirmAction);
@@ -271,6 +279,11 @@ function init() {
 
     if (event.key === "Escape" && !improvementPromoModal.hidden) {
       closeImprovementPromo();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      closeSidePanels();
     }
   });
   window.addEventListener("beforeunload", stopAllMedia);
@@ -396,7 +409,7 @@ async function skipQuestion() {
   await runCurrentQuestion();
 }
 
-// 시계 가운데 글자 자리는 좁아서 짧은 말만 넣고, 긴 안내는 넓은 질문 칸에 흐린 글씨로 보여 준다.
+// 시간 아래 글자 자리에는 짧은 말만 넣고, 긴 안내는 넓은 질문 칸에 흐린 글씨로 보여 준다.
 function showNoEnabledQuestionMessage() {
   timerTitle.textContent = "질문 없음";
   questionText.textContent = "켜진 질문이 없어요. '주제 선택'에서 질문을 켜 주세요.";
@@ -425,12 +438,14 @@ async function runCurrentQuestion() {
 }
 
 async function runAnswerPhase() {
+  closeSidePanels();
   startBtn.disabled = true;
   skipBtn.disabled = false;
 
   const recordingStarted = await startRecording();
   if (!recordingStarted) {
     finishPractice("마이크 필요");
+    openSidePanel(resultPanel, openResultBtn);
     return;
   }
 
@@ -487,18 +502,14 @@ function runTimer(totalSeconds, label) {
   });
 }
 
-const TIMER_RING_CIRCUMFERENCE = 2 * Math.PI * 54;
-
 function updateTimer(remaining, total) {
   currentTimerRemaining = remaining;
   const minutes = String(Math.floor(remaining / 60)).padStart(2, "0");
   const seconds = String(remaining % 60).padStart(2, "0");
   const elapsedRatio = total === 0 ? 0 : ((total - remaining) / total) * 100;
-  const remainingRatio = total === 0 ? 0 : Math.min(1, Math.max(0, remaining / total));
 
   timerText.textContent = `${minutes}:${seconds}`;
   progressBar.style.width = `${Math.min(100, Math.max(0, elapsedRatio))}%`;
-  timerRing.style.strokeDashoffset = `${TIMER_RING_CIRCUMFERENCE * (1 - remainingRatio)}`;
   updateRetryAvailability();
 }
 
@@ -599,8 +610,9 @@ function startSpeechRecognition() {
 function finishAnswer() {
   stopCurrentTimer();
   setPhase("done");
-  stopActiveRecording();
+  const recordingStopped = stopActiveRecording();
   finishPractice("답변 종료");
+  recordingStopped.then(() => openSidePanel(resultPanel, openResultBtn));
 }
 
 function finishPractice(message) {
@@ -734,34 +746,72 @@ function loadAnswerDuration() {
   }
 }
 
-// 답변 시작 전·후에는 시간을 바꿀 수 있고, 답변 중에만 버튼을 잠근다.
 function renderAnswerDurationButtons() {
-  const isLocked = phase === "answer";
   answerDurationToggle.querySelectorAll("[data-answer-seconds]").forEach((button) => {
     const isActive = Number(button.dataset.answerSeconds) === answerSeconds;
     button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
-    button.disabled = isLocked;
   });
 }
 
 function selectAnswerDuration(event) {
   const button = event.target.closest("[data-answer-seconds]");
-  if (!button || phase === "answer") return;
+  if (!button) return;
 
-  answerSeconds = Number(button.dataset.answerSeconds);
+  const nextSeconds = Number(button.dataset.answerSeconds);
+  // 답변을 다시 시작하는 짧은 사이에 또 눌러도 녹화가 겹치지 않게 무시한다.
+  if (nextSeconds === answerSeconds || (phase === "answer" && !timerId)) return;
+
+  answerSeconds = nextSeconds;
   try {
     localStorage.setItem(ANSWER_DURATION_KEY, String(answerSeconds));
   } catch {
     // 저장이 안 되는 브라우저에서도 이번 연습에는 고른 시간이 적용된다.
   }
   renderAnswerDurationButtons();
+
+  if (phase === "answer") {
+    restartAnswerWithNewDuration();
+  }
+}
+
+// 답변 중에 시간을 바꾸면 같은 문제를 새 시간으로 처음부터 다시 녹화한다. 그때까지의 녹화는 결과와 기록에 남기지 않는다.
+async function restartAnswerWithNewDuration() {
+  stopCurrentTimer();
+  recordingSessionId += 1;
+  await stopActiveRecording();
+  resetResult();
+  retryBtn.disabled = true;
+  await runAnswerPhase();
 }
 
 function updateRetryAvailability() {
   const canRetryEarly = phase === "answer" && currentTimerRemaining > answerSeconds - RETRY_EARLY_WINDOW_SECONDS;
   const canRetryAfterAnswer = phase === "done" && Boolean(currentQuestion);
   retryBtn.disabled = !canRetryEarly && !canRetryAfterAnswer;
+}
+
+function openSidePanel(panel, button) {
+  closeSidePanels();
+  panel.hidden = false;
+  button.setAttribute("aria-expanded", "true");
+}
+
+function closeSidePanels() {
+  settingsPanel.hidden = true;
+  resultPanel.hidden = true;
+  openSettingsBtn.setAttribute("aria-expanded", "false");
+  openResultBtn.setAttribute("aria-expanded", "false");
+  videoPlayer.pause();
+  audioPlayer.pause();
+}
+
+function toggleSidePanel(panel, button) {
+  if (panel.hidden) {
+    openSidePanel(panel, button);
+  } else {
+    closeSidePanels();
+  }
 }
 
 function showEnvPopover() {
@@ -828,8 +878,6 @@ async function checkEnvironment() {
 }
 
 function attachPreview(stream) {
-  showEnvPopover();
-
   if (stream.getVideoTracks().length === 0) return;
 
   cameraPreview.srcObject = stream;
