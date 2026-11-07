@@ -6,7 +6,7 @@
   <title>진로전담교사 면접 연습</title>
   <link rel="icon" type="image/png" href="assets/interview-compass-mark.png">
   <link rel="apple-touch-icon" href="assets/interview-compass-mark.png">
-  <link rel="stylesheet" href="style.css?v=20261107-6">
+  <link rel="stylesheet" href="style.css?v=20261107-8">
 </head>
 <body>
   <main class="app">
@@ -19,7 +19,7 @@
         <div class="top-actions">
           <div class="status-pill" id="phaseLabel">대기 중</div>
           <button id="openSettingsBtn" class="mini-btn" type="button" aria-expanded="false" aria-controls="settingsPanel">연습 설정</button>
-          <button id="openResultBtn" class="mini-btn" type="button" aria-expanded="false" aria-controls="resultPanel">답변 결과</button>
+          <button id="openResultBtn" class="mini-btn" type="button" aria-expanded="true" aria-controls="resultPanel">답변 결과</button>
           <button id="openGuideBtn" class="mini-btn" type="button">가이드 보기</button>
           <button id="openHistoryBtn" class="mini-btn" type="button">기록 보기</button>
           <button id="openImprovementsBtn" class="mini-btn" type="button">개선사항</button>
@@ -106,18 +106,16 @@
         </div>
       </aside>
 
-      <aside id="resultPanel" class="side-panel" aria-labelledby="result-title" hidden>
+      <aside id="resultPanel" class="result-dock" aria-labelledby="result-title">
         <div class="side-panel-header">
           <h2 id="result-title">답변 결과</h2>
           <span id="recordingState">녹음 전</span>
-          <button class="mini-btn" type="button" data-close-panel>닫기</button>
+          <button id="closeResultBtn" class="mini-btn" type="button">닫기</button>
         </div>
         <section class="result-box answer-result">
           <video id="videoPlayer" class="recorded-video" controls hidden></video>
           <audio id="audioPlayer" controls hidden></audio>
-          <p id="transcriptText" class="placeholder">
-            답변 시간이 끝나면 녹음 파일과 음성 인식 텍스트가 이곳에 표시됩니다.
-          </p>
+          <p id="transcriptText" class="placeholder">답변 시간이 끝나면 녹음 파일과 음성 인식 텍스트가 이곳에 표시됩니다.</p>
           <div id="feedbackBox" class="feedback-box" hidden></div>
         </section>
       </aside>
@@ -214,6 +212,6 @@
     </section>
   </div>
 
-  <script src="main.js?v=20261107-5"></script>
+  <script src="main.js?v=20261107-7"></script>
 </body>
 </html>

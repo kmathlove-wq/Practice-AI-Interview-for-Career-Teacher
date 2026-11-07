@@ -1801,10 +1801,69 @@ h1 {
 }
 
 .site-credit {
-  padding: 0 16px 10px;
+  padding: 4px 16px 8px;
   color: var(--muted);
   font-size: 12px;
-  text-align: center;
+  text-align: right;
+}
+
+/* 답변 결과: 오른쪽에 고정된 칸. 위쪽 버튼으로 끄고 켠다. */
+.result-dock {
+  min-width: 0;
+  background: var(--panel);
+  padding: 18px 22px 24px;
+}
+
+.result-dock[hidden] {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .practice-panel:has(.result-dock:not([hidden])) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 400px;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "top top"
+      "exam result"
+      "credit credit";
+  }
+
+  .practice-panel:has(.result-dock:not([hidden])) .top-bar {
+    grid-area: top;
+  }
+
+  .practice-panel:has(.result-dock:not([hidden])) .exam-layout {
+    grid-area: exam;
+  }
+
+  .practice-panel:has(.result-dock:not([hidden])) .site-credit {
+    grid-area: credit;
+  }
+
+  /* 맨 위 줄과 개발자 표시 줄을 뺀 높이 안에서 칸 안쪽만 스크롤한다. */
+  .result-dock {
+    grid-area: result;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: calc(100vh - 84px);
+    border-left: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    overflow: auto;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .practice-panel:has(.result-dock:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  .practice-panel:has(.result-dock:not([hidden])) .exam-layout {
+    grid-template-columns: minmax(0, clamp(420px, calc((100vh - 370px) * 16 / 9), 852px)) 250px;
+    column-gap: 20px;
+    width: calc(100% - 32px);
+  }
 }
 
 /* 평소에는 숨겨 두고 버튼을 누르면 오른쪽에서 열리는 칸 */
@@ -1959,6 +2018,15 @@ h1 {
 }
 
 @media (max-width: 899px) {
+  .result-dock {
+    order: 1;
+    border-top: 1px solid var(--line);
+  }
+
+  .site-credit {
+    order: 2;
+  }
+
   .top-bar {
     align-items: flex-start;
     flex-direction: column;

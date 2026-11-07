@@ -80,6 +80,7 @@ const DEFAULT_ANSWER_SECONDS = 110;
 const RETRY_EARLY_WINDOW_SECONDS = 20;
 const ENDING_WARNING_SECONDS = 10;
 const ANSWER_DURATION_KEY = "practiceInterviewAnswerSeconds";
+const RESULT_PANEL_OPEN_KEY = "practiceInterviewResultPanelOpen";
 const QUESTION_FILE_NAMES = ["면접예상질문.txt", "면접예상질문2.txt"];
 const CUSTOM_QUESTIONS_KEY = "practiceInterviewCustomQuestions";
 const DELETED_CUSTOM_QUESTIONS_KEY = "practiceInterviewDeletedCustomQuestions";
@@ -139,6 +140,7 @@ const openSettingsBtn = document.querySelector("#openSettingsBtn");
 const openResultBtn = document.querySelector("#openResultBtn");
 const settingsPanel = document.querySelector("#settingsPanel");
 const resultPanel = document.querySelector("#resultPanel");
+const closeResultBtn = document.querySelector("#closeResultBtn");
 const improvementPromoModal = document.querySelector("#improvementPromoModal");
 const promoCloseBtn = document.querySelector("#promoCloseBtn");
 const promoDismissTodayBtn = document.querySelector("#promoDismissTodayBtn");
@@ -221,6 +223,7 @@ function init() {
   loadQuestionsFromTextFile();
   renderPracticeHistory();
   loadAnswerDuration();
+  loadResultPanelPreference();
   renderAnswerDurationButtons();
   answerDurationToggle.addEventListener("click", selectAnswerDuration);
   startBtn.addEventListener("click", startPractice);
@@ -261,10 +264,11 @@ function init() {
       closeImprovementPromo();
     }
   });
-  openSettingsBtn.addEventListener("click", () => toggleSidePanel(settingsPanel, openSettingsBtn));
-  openResultBtn.addEventListener("click", () => toggleSidePanel(resultPanel, openResultBtn));
+  openSettingsBtn.addEventListener("click", toggleSettingsPanel);
+  openResultBtn.addEventListener("click", () => chooseResultPanelOpen(resultPanel.hidden));
+  closeResultBtn.addEventListener("click", () => chooseResultPanelOpen(false));
   document.querySelectorAll("[data-close-panel]").forEach((button) => {
-    button.addEventListener("click", closeSidePanels);
+    button.addEventListener("click", closeSettingsPanel);
   });
   closeModalBtn.addEventListener("click", closeInfoModal);
   confirmCloseBtn.addEventListener("click", cancelConfirmDialog);
@@ -304,7 +308,7 @@ function init() {
     }
 
     if (event.key === "Escape") {
-      closeSidePanels();
+      closeSettingsPanel();
     }
   });
   window.addEventListener("beforeunload", stopAllMedia);
@@ -530,14 +534,15 @@ async function runCurrentQuestion() {
 }
 
 async function runAnswerPhase() {
-  closeSidePanels();
+  closeSettingsPanel();
   startBtn.disabled = true;
   skipBtn.disabled = false;
 
   const recordingStarted = await startRecording();
   if (!recordingStarted) {
     finishPractice("마이크 필요");
-    openSidePanel(resultPanel, openResultBtn);
+    // 자세한 안내가 결과 칸에 있으므로 꺼져 있어도 이번에는 보여 준다(저장은 안 함).
+    showResultPanel(true);
     return;
   }
 
@@ -703,9 +708,8 @@ function startSpeechRecognition() {
 function finishAnswer() {
   stopCurrentTimer();
   setPhase("done");
-  const recordingStopped = stopActiveRecording();
+  stopActiveRecording();
   finishPractice("답변 종료");
-  recordingStopped.then(() => openSidePanel(resultPanel, openResultBtn));
 }
 
 function finishPractice(message) {
@@ -887,26 +891,40 @@ function updateRetryAvailability() {
   retryBtn.disabled = !canRetryEarly && !canRetryAfterAnswer;
 }
 
-function openSidePanel(panel, button) {
-  closeSidePanels();
-  panel.hidden = false;
-  button.setAttribute("aria-expanded", "true");
+function toggleSettingsPanel() {
+  settingsPanel.hidden = !settingsPanel.hidden;
+  openSettingsBtn.setAttribute("aria-expanded", String(!settingsPanel.hidden));
 }
 
-function closeSidePanels() {
+function closeSettingsPanel() {
   settingsPanel.hidden = true;
-  resultPanel.hidden = true;
   openSettingsBtn.setAttribute("aria-expanded", "false");
-  openResultBtn.setAttribute("aria-expanded", "false");
-  videoPlayer.pause();
-  audioPlayer.pause();
 }
 
-function toggleSidePanel(panel, button) {
-  if (panel.hidden) {
-    openSidePanel(panel, button);
-  } else {
-    closeSidePanels();
+// 답변 결과는 오른쪽에 계속 떠 있고, 사용자가 끄고 켠 상태를 기억한다.
+function loadResultPanelPreference() {
+  try {
+    showResultPanel(localStorage.getItem(RESULT_PANEL_OPEN_KEY) !== "false");
+  } catch {
+    showResultPanel(true);
+  }
+}
+
+function showResultPanel(isOpen) {
+  resultPanel.hidden = !isOpen;
+  openResultBtn.setAttribute("aria-expanded", String(isOpen));
+  if (!isOpen) {
+    videoPlayer.pause();
+    audioPlayer.pause();
+  }
+}
+
+function chooseResultPanelOpen(isOpen) {
+  showResultPanel(isOpen);
+  try {
+    localStorage.setItem(RESULT_PANEL_OPEN_KEY, String(isOpen));
+  } catch {
+    // 저장이 안 되는 브라우저에서도 지금 화면에는 적용된다.
   }
 }
 
