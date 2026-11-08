@@ -66,6 +66,8 @@ python3 -m http.server 8000
 - "질문 순서" 목록(기본은 접힘, `질문 순서 보기` 버튼으로 펼침)에서 맨 앞으로/▲/▼로 연습 번호를
   바꾼다. 긴 질문은 40자로 줄이고 `전체`로 펼친다. `questionOrder`(`practiceInterviewQuestionOrder`)에
   `base:원본텍스트`/`custom:현재텍스트` 키로 저장(`buildQuestionEntries()`); 개인 질문 수정 시 순서 초기화.
+- 질문 관리 창 맨 위 `엑셀로 내려받기`/`엑셀에서 질문 넣기`(ExcelJS 4.4.0, 버튼 누를 때 cdnjs에서 불러옴). 주제 줄=A~B 합친 큰 글씨, 질문 줄=A 번호/B 질문.
+  넣기(`readQuestionsFromSheet()`): B칸 있으면 질문(맨 앞 `숫자.`만 지움, `2022 개정…`은 유지), A칸만 있으면 주제, 합친 칸의 B칸은 빈칸 취급. 겹치는 질문은 건너뛰고 개인 질문으로 추가.
 
 ### 면접 흐름
 

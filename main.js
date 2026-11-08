@@ -1859,6 +1859,15 @@ function openCustomQuestionModal() {
   expandedOrderQuestionKeys = new Set();
   modalTitle.textContent = "질문 관리";
   modalBody.innerHTML = `
+    <section class="excel-tools" aria-label="엑셀로 질문 주고받기">
+      <div class="excel-tools-buttons">
+        <button class="mini-btn" type="button" data-excel-export>📥 엑셀로 내려받기</button>
+        <button class="mini-btn" type="button" data-excel-import>📤 엑셀에서 질문 넣기</button>
+        <input id="excelImportInput" type="file" accept=".xlsx" hidden>
+      </div>
+      <p class="excel-tools-help">엑셀에서 <strong>A칸</strong>에만 쓰면 주제, <strong>B칸</strong>에 쓰면 그 주제의 질문이 돼요.</p>
+      <p id="excelStatus" class="custom-question-status" aria-live="polite"></p>
+    </section>
     <form id="customQuestionForm" class="custom-question-form">
       <input id="customQuestionEditType" type="hidden">
       <input id="customQuestionEditIndex" type="hidden">
@@ -1890,8 +1899,190 @@ function openCustomQuestionModal() {
   infoModal.hidden = false;
   closeModalBtn.focus();
   setupCustomQuestionForm();
+  document.querySelector("#excelImportInput")?.addEventListener("change", handleExcelImportFile);
   renderQuestionOrderList();
   renderCustomQuestionList();
+}
+
+// ===== 엑셀로 질문 주고받기 =====
+// 엑셀 모양: 주제 줄은 A~B칸을 합친 큰 글씨, 질문 줄은 A칸=번호 / B칸=질문.
+// 다시 넣을 때 규칙: B칸에 글이 있으면 질문, A칸에만 글이 있으면 주제.
+const EXCELJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+let excelJsPromise = null;
+
+// 엑셀 도구는 버튼을 처음 누를 때만 불러온다(평소 사이트 로딩을 느리게 하지 않으려고).
+function loadExcelJs() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (!excelJsPromise) {
+    excelJsPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = EXCELJS_URL;
+      script.onload = () => (window.ExcelJS ? resolve(window.ExcelJS) : reject(new Error("no ExcelJS")));
+      script.onerror = () => {
+        excelJsPromise = null;
+        script.remove();
+        reject(new Error("load failed"));
+      };
+      document.head.appendChild(script);
+    });
+  }
+  return excelJsPromise;
+}
+
+function setExcelStatus(message, isError = false) {
+  const status = document.querySelector("#excelStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("is-error", isError);
+}
+
+async function exportQuestionsToExcel() {
+  setExcelStatus("엑셀 파일을 만드는 중이에요…");
+  let ExcelJS;
+  try {
+    ExcelJS = await loadExcelJs();
+  } catch {
+    setExcelStatus("엑셀 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.", true);
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("질문 목록");
+  sheet.columns = [{ width: 6 }, { width: 90 }];
+
+  getTopicGroups().forEach(({ topic, entries }, groupIndex) => {
+    if (groupIndex > 0) sheet.addRow([]);
+    const topicRow = sheet.addRow([topic]);
+    sheet.mergeCells(topicRow.number, 1, topicRow.number, 2);
+    topicRow.height = 30;
+    const topicCell = topicRow.getCell(1);
+    topicCell.font = { size: 18, bold: true, color: { argb: "FFFFFFFF" } };
+    topicCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0F62FE" } };
+    topicCell.alignment = { vertical: "middle" };
+
+    entries.forEach((entry, index) => {
+      const row = sheet.addRow([index + 1, entry.text]);
+      row.getCell(1).alignment = { horizontal: "center", vertical: "top" };
+      row.getCell(2).alignment = { wrapText: true, vertical: "top" };
+      row.font = { size: 11 };
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `진로스터디-질문목록-${getLocalDateKey()}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  setExcelStatus(`질문 ${orderedQuestionEntries.length}개를 엑셀 파일로 내려받았어요.`);
+}
+
+// 엑셀 칸 값은 글자·숫자·서식 있는 글자 등 여러 모양이라, 모두 평범한 글자로 바꾼다.
+function getExcelCellText(cell) {
+  const value = cell.value;
+  if (value === null || value === undefined) return "";
+  if (typeof value === "object") {
+    if (Array.isArray(value.richText)) return value.richText.map((part) => part.text).join("");
+    if ("result" in value) return String(value.result ?? "");
+    if ("text" in value) return String(value.text ?? "");
+    return "";
+  }
+  return String(value);
+}
+
+// 엑셀 줄들을 읽어 [{ topic, text }] 목록으로 바꾼다. 주제가 나오기 전 질문은 topic이 빈 문자열.
+function readQuestionsFromSheet(sheet) {
+  const items = [];
+  let currentTopic = "";
+  sheet.eachRow((row) => {
+    const colA = getExcelCellText(row.getCell(1)).replace(/\s+/g, " ").trim();
+    // 주제 줄처럼 A~B칸을 합친 칸은 B칸을 읽어도 A칸 글자가 나오므로, 빈칸으로 본다.
+    const cellB = row.getCell(2);
+    const colB = cellB.isMerged && cellB.master !== cellB
+      ? ""
+      : getExcelCellText(cellB).replace(/\s+/g, " ").trim();
+    if (colB) {
+      // B칸 = 질문. 맨 앞이 "숫자."이면 번호로 보고 지운다("3. 질문" → "질문").
+      // "2022 개정…"(숫자+공백), "2026년…", "2.5배…"(소수점)는 진짜 질문이라 그대로 둔다.
+      const text = colB.replace(/^\d+\.(?!\d)\s*/, "").trim();
+      if (text) items.push({ topic: currentTopic, text });
+      return;
+    }
+    // A칸에만 글이 있으면 주제. 숫자만 있는 칸(번호만 남은 줄)은 무시한다.
+    if (colA && !/^\d+\.?$/.test(colA)) currentTopic = colA;
+  });
+  return items;
+}
+
+function handleExcelImportClick() {
+  const input = document.querySelector("#excelImportInput");
+  if (!input) return;
+  input.value = "";
+  input.click();
+}
+
+async function handleExcelImportFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  setExcelStatus("엑셀 파일을 읽는 중이에요…");
+  let items;
+  try {
+    const ExcelJS = await loadExcelJs();
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(await file.arrayBuffer());
+    const sheet = workbook.worksheets[0];
+    items = sheet ? readQuestionsFromSheet(sheet) : [];
+  } catch {
+    setExcelStatus("엑셀 파일을 읽지 못했어요. .xlsx 파일이 맞는지 확인해 주세요.", true);
+    return;
+  }
+
+  // 이미 있는 질문과 파일 안에서 두 번 나온 질문은 건너뛴다.
+  const seen = new Set();
+  const newItems = items.filter((item) => {
+    if (seen.has(item.text) || hasDuplicateQuestion(item.text)) return false;
+    seen.add(item.text);
+    return true;
+  });
+  const skippedCount = items.length - newItems.length;
+
+  if (newItems.length === 0) {
+    setExcelStatus(items.length
+      ? `새로 넣을 질문이 없어요. (이미 있는 질문 ${skippedCount}개)`
+      : "엑셀에서 질문을 찾지 못했어요. B칸에 질문을 써 주세요.", true);
+    return;
+  }
+
+  const topicCount = new Set(newItems.map((item) => item.topic || getFormDefaultTopic())).size;
+  const ok = await openConfirmDialog({
+    title: "엑셀에서 질문 넣기",
+    message: `주제 ${topicCount}개, 질문 ${newItems.length}개를 넣을까요?`
+      + (skippedCount ? ` (이미 있는 질문 ${skippedCount}개는 건너뛰어요.)` : ""),
+    confirmText: "넣기"
+  });
+  if (!ok) {
+    setExcelStatus("질문 넣기를 취소했어요.");
+    return;
+  }
+
+  // 엑셀 순서 그대로 보이도록 한꺼번에 맨 앞에 붙인다.
+  customQuestions = [...newItems.map((item) => item.text), ...customQuestions];
+  newItems.forEach((item) => {
+    const topic = item.topic || getFormDefaultTopic();
+    customQuestionTopics[item.text] = topic;
+    reviveTopic(topic);
+  });
+  saveTopicSettings();
+  saveCustomQuestions();
+  syncQuestions();
+  renderCustomQuestionTopicOptions(getSelectedFormTopic() || getFormDefaultTopic());
+  renderQuestionOrderList();
+  renderCustomQuestionList();
+  setExcelStatus(`질문 ${newItems.length}개를 넣었어요.` + (skippedCount ? ` 이미 있는 질문 ${skippedCount}개는 건너뛰었어요.` : ""));
 }
 
 function setupCustomQuestionForm() {
@@ -2992,6 +3183,16 @@ function closeInfoModal() {
 }
 
 async function handleModalClick(event) {
+  if (event.target.closest("[data-excel-export]")) {
+    await exportQuestionsToExcel();
+    return;
+  }
+
+  if (event.target.closest("[data-excel-import]")) {
+    handleExcelImportClick();
+    return;
+  }
+
   if (event.target.closest("[data-enable-all-topics]")) {
     setAllTopicsEnabled(true);
     return;

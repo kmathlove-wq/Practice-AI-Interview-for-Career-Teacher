@@ -2111,3 +2111,30 @@ h1 {
     animation: none;
   }
 }
+
+/* 질문 관리 창 맨 위: 엑셀로 질문 주고받기 */
+.excel-tools {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.excel-tools-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.excel-tools-help {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.excel-tools .custom-question-status:empty {
+  display: none;
+}
