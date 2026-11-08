@@ -768,7 +768,7 @@ function startSpeechRecognition() {
   shouldRecognize = true;
 
   if (isMobileDevice() && getMobileCaptureMode() === "sound") {
-    recognitionNotice = "소리 녹음 우선으로 설정되어 있어 글자 인식을 하지 않습니다. 연습 설정에서 바꿀 수 있습니다.";
+    recognitionNotice = "소리 녹음 우선으로 설정되어 있어 글자 인식을 하지 않습니다. 질문 리스트에서 바꿀 수 있습니다.";
     transcriptText.textContent = recognitionNotice;
     return;
   }
